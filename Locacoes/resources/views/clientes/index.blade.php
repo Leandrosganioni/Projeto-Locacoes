@@ -34,6 +34,14 @@
                         <td>
                             <a href="{{ route('clientes.show', $cliente->id) }}" class="btn btn-sm btn-info">Ver</a>
                             <a href="{{ route('clientes.edit', $cliente->id) }}" class="btn btn-sm btn-warning">Editar</a>
+                            <form action="{{ route('clientes.destroy', $cliente->id) }}" method="POST" style="display: inline;">
+                            @csrf
+                            @method('DELETE')
+                        <button type="submit" class="btn btn-sm btn-danger" 
+                                onclick="return confirm('Tem certeza que deseja excluir este cliente?')">
+                            Excluir
+                        </button>
+                            </form>
                         </td>
                     </tr>
                 @empty
