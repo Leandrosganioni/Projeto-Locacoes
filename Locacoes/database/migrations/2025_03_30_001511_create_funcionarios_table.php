@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('funcionarios', function (Blueprint $table) {
             $table->id();
+            $table->string('nome', 100);
+            $table->string('cpf', 14)->unique();
+            $table->string('cargo', 50);
             $table->timestamps();
         });
     }

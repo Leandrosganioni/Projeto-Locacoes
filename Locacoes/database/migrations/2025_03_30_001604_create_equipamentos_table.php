@@ -13,6 +13,12 @@ return new class extends Migration
     {
         Schema::create('equipamentos', function (Blueprint $table) {
             $table->id();
+            $table->string('nome', 100);
+            $table->string('tipo', 50);
+            $table->integer('quantidade')->default(0); 
+            $table->text('descricao_tecnica'); 
+            $table->text('informacoes_manutencao')->nullable();
+            $table->boolean('disponivel')->default(true);
             $table->timestamps();
         });
     }
