@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Adicionar Funcionário</title>
+    <title>Adicionar Funcionario</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
     <div class="container mt-5">
-        <h1 class="mb-4">Adicionar Novo Funcionário</h1>
+        <h1 class="mb-4">Adicionar Novo Funcionario</h1>
         
         <form method="POST" action="{{ route('funcionarios.store') }}">
             @csrf
@@ -22,14 +22,8 @@
             </div>
             
             <div class="mb-3">
-                <label for="cargo" class="form-label">Cargo</label>
-                <select class="form-control" id="cargo" name="cargo" required>
-                    <option value="">Selecione um cargo</option>
-                    <option value="Administrativo">Administrativo</option>
-                    <option value="Vendas">Setor de Vendas</option>
-                    <option value="RH">Recursos Humanos</option>
-                    <option value="Marketing">Marketing</option>
-                </select>
+                <label for="telefone" class="form-label">Telefone</label>
+                <input type="text" class="form-control" id="telefone" name="telefone" required>
             </div>
             
             <button type="submit" class="btn btn-primary">Salvar</button>

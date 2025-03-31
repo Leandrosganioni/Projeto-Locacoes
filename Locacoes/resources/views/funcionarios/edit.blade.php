@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Editar Funcionário</title>
+    <title>Editar Funcionario</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
     <div class="container mt-5">
-        <h1 class="mb-4">Editar Funcionário</h1>
+        <h1 class="mb-4">Editar Funcionario</h1>
         
         <form method="POST" action="{{ route('funcionarios.update', $funcionario->id) }}">
             @csrf
@@ -23,13 +23,8 @@
             </div>
             
             <div class="mb-3">
-                <label for="cargo" class="form-label">Cargo</label>
-                <select class="form-control" id="cargo" name="cargo" required>
-                    <option value="Administrativo" {{ $funcionario->cargo == 'Administrativo' ? 'selected' : '' }}>Administrativo</option>
-                    <option value="Vendas" {{ $funcionario->cargo == 'Vendas' ? 'selected' : '' }}>Setor de Vendas</option>
-                    <option value="RH" {{ $funcionario->cargo == 'RH' ? 'selected' : '' }}>Recursos Humanos</option>
-                    <option value="Marketing" {{ $funcionario->cargo == 'Marketing' ? 'selected' : '' }}>Marketing</option>
-                </select>
+                <label for="telefone" class="form-label">Telefone</label>
+                <input type="text" class="form-control" id="telefone" name="telefone" value="{{ $funcionario->telefone }}" required>
             </div>
             
             <button type="submit" class="btn btn-primary">Atualizar</button>

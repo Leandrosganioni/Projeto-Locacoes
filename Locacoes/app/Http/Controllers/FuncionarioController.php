@@ -19,22 +19,19 @@ class FuncionarioController extends Controller
     }
 
     public function store(Request $request)
-{
-    $request->validate([
-        'nome' => 'required|string|max:100',
-        'cpf' => 'required|string|size:14|unique:funcionarios',
-        'cargo' => 'required|in:Administrativo,Vendas,RH,Marketing'
-    ]);
+    {
+        $request->validate([
+            'nome' => 'required',
+            'cpf' => 'required',
+            'telefone' => 'required',
+        ]);
 
-    Funcionario::create([
-        'nome' => $request->nome,
-        'cpf' => $request->cpf,
-        'cargo' => $request->cargo
-    ]);
+        Funcionario::create($request->all());
 
-    return redirect()->route('funcionarios.index')
-                     ->with('success', 'Funcionário cadastrado com sucesso!');
-}
+        return redirect()
+            ->route('funcionarios.index')
+            ->with('success', 'Funcionario cadastrado com sucesso!');
+    }
 
     public function show(Funcionario $funcionario)
     {
@@ -51,19 +48,27 @@ class FuncionarioController extends Controller
         $request->validate([
             'nome' => 'required|string|max:100',
             'cpf' => 'required|string|size:14|unique:funcionarios,cpf,'.$funcionario->id,
-            'cargo' => 'required|in:Administrativo,Vendas,RH,Marketing,TI'
+            'telefone' => 'required|string|max:20',
         ]);
 
         $funcionario->update($request->all());
 
-        return redirect()->route('funcionarios.index')
-                         ->with('success', 'Funcionário atualizado!');
+        return redirect()
+            ->route('funcionarios.index')
+            ->with('success', 'Funcionario atualizado com sucesso!');
     }
 
     public function destroy(Funcionario $funcionario)
     {
-        $funcionario->delete();
-        return redirect()->route('funcionarios.index')
-                         ->with('success', 'Funcionário removido!');
+        try {
+            $funcionario->delete();
+            return redirect()
+                ->route('funcionarios.index')
+                ->with('success', 'Funcionario excluído com sucesso!');
+        } catch (\Exception $e) {
+            return redirect()
+                ->route('funcionarios.index')
+                ->with('error', 'Erro ao excluir funcionario: ' . $e->getMessage());
+        }
     }
 }
