@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('nome', 100);
             $table->string('cpf', 14)->unique();
-            $table->string('cargo', 50);
+            $table->string('telefone', 20);
             $table->timestamps();
         });
     }
