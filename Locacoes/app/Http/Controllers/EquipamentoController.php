@@ -2,63 +2,75 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Equipamento;
 use Illuminate\Http\Request;
 
 class EquipamentoController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $equipamentos = Equipamento::all(); 
+        return view('equipamentos.index', compact('equipamentos'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        //
+        return view('equipamentos.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'nome' => 'required',
+            'tipo' => 'required',
+            'quantidade' => 'required',
+            'descricao_tecnica' => 'required',
+            'informacoes_manutencao' => 'required'
+        ]);
+
+        Equipamento::create($request->all());
+
+        return redirect()
+            ->route('equipamentos.index')
+            ->with('success', 'Equipamento cadastrado com sucesso!');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function show(Equipamento $equipamento)
     {
-        //
+        return view('equipamentos.show', compact('equipamento'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
+    public function edit(Equipamento $equipamento)
     {
-        //
+        return view('equipamentos.edit', compact('equipamento'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Equipamento $equipamento)
     {
-        //
+        
+        $request->validate([
+            'nome' => 'required|string|max:150',
+            'tipo' => 'required|string|max: 50',
+            'quantidade' => 'required|integer',
+            'descricao_tecnica' => 'required|string',
+            'informacoes_manutencao' => 'required|string'
+        ]);
+
+        $equipamento->update($request->all());
+
+        return redirect()->route('equipamentos.index')
+                         ->with('success', 'Equipamento atualizado com sucesso!');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy(Equipamento $equipamento)
     {
-        //
+        try {
+            $equipamento->delete();
+            return redirect()->route('equipamentos.index')
+                           ->with('success', 'Equipamento excluído com sucesso!');
+        } catch (\Exception $e) {
+            return redirect()->route('equipamentos.index')
+                           ->with('error', 'Erro ao excluir Equipamento: ' . $e->getMessage());
+        }
     }
 }
