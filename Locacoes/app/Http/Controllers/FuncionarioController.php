@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Funcionario;
 use Illuminate\Http\Request;
-
+use Illuminate\Validation\Rule;
 class FuncionarioController extends Controller
 {
     public function index()
@@ -47,15 +47,19 @@ class FuncionarioController extends Controller
     {
         $request->validate([
             'nome' => 'required|string|max:100',
-            'cpf' => 'required|string|size:14|unique:funcionarios,cpf,'.$funcionario->id,
+            'cpf' => [
+                'required',
+                'string',
+                Rule::unique('funcionarios')->ignore($funcionario->id) //dar uma atenção nisso depois
+            ],
             'telefone' => 'required|string|max:20',
-        ]);
+    ]);
 
         $funcionario->update($request->all());
 
         return redirect()
             ->route('funcionarios.index')
-            ->with('success', 'Funcionario atualizado com sucesso!');
+            ->with('success', 'Funcionário atualizado com sucesso!');
     }
 
     public function destroy(Funcionario $funcionario)

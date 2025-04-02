@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Cliente;
 use Illuminate\Http\Request;
-
+use Illuminate\Validation\Rule;
 class ClienteController extends Controller
 {
     
@@ -56,7 +56,11 @@ class ClienteController extends Controller
         
         $request->validate([
             'nome' => 'required|string|max:100',
-            'cpf' => 'required|string|size:14|unique:clientes,cpf,'.$cliente->id,
+            'cpf' => [
+                'required',
+                'string',
+                Rule::unique('clientes')->ignore($cliente->id) //dar uma atenção nisso depois
+            ],
             'telefone' => 'required|string|max:20',
             'endereco' => 'required|string|max:200'
         ]);
