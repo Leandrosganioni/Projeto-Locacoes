@@ -24,3 +24,4 @@ yarn-error.log
 /.composer.json
 /.composer.lock
 /composer.json
+/composer.lock
