@@ -10,16 +10,13 @@ Route::get("/login", [AuthController::class, 'showFormLogin'])->name('login');
 Route::post("/login", [AuthController::class, 'login']);
 
 Route::middleware("auth")->group(function (){
-    Route::resource("produtos", ProdutoController::class);
+    Route::resource("clientes", ClienteController::class);
+    Route::resource('funcionarios', FuncionarioController::class);
+    Route::resource('equipamentos', EquipamentoController::class);
     Route::post("/logout", [AuthController::class, "logout"]);
 });
 
-Route::get('/', function () {
-    return view('index');
-});
+Route::get('/index', function () {
+    return view('index'); // ou outro nome de view, se for diferente
+})->name('index');
 
-Route::resource('clientes', ClienteController::class);
-
-Route::resource('funcionarios', FuncionarioController::class);
-
-Route::resource('equipamentos', EquipamentoController::class);

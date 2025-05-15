@@ -21,4 +21,4 @@ class UserSeeder extends Seeder
                         //'password' => Hash::make($request->password),
         ]);
     }
-}
+} 
