@@ -4,11 +4,9 @@
 
 @section('content')
 
-<p>Usuário: {{ Auth::user()->name }}</p>  
 
     <form method="POST" action="/logout">
         @csrf
-        <button type="submit" class="btn btn-danger">Sair</button>
     </form>
 
 <div class="container mt-5">

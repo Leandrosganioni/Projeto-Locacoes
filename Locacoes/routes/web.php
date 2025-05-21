@@ -13,10 +13,16 @@ Route::middleware("auth")->group(function (){
     Route::resource("clientes", ClienteController::class);
     Route::resource('funcionarios', FuncionarioController::class);
     Route::resource('equipamentos', EquipamentoController::class);
-    Route::post("/logout", [AuthController::class, "logout"]);
+    Route::post("/logout", [AuthController::class, "logout"])->name('logout');
 });
 
-Route::get('/index', function () {
+/*Route::get('/index', function () {
     return view('index'); // ou outro nome de view, se for diferente
 })->name('index');
+*/
+Route::get('/index', function () {
+    return view('index');
+})->middleware('auth')->name('index');
+
+
 

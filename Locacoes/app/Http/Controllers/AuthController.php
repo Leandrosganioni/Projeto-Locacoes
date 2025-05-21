@@ -30,10 +30,5 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
         return redirect('/login');
     }
-    
-Route::get('/index', function () {
-    return view('index');
-})->middleware('auth')->name('index');
-
 
 }
