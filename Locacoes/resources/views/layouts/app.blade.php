@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title') - ELoc locações</title>
-    <!-- Bootstrap CSS -->
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    @stack('styles') <!-- Para estilos específicos de páginas -->
+    @stack('styles') 
 </head>
 <body>
-    <!-- Navbar -->
+    
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="/">ELoc locações</a>
@@ -35,20 +35,20 @@
         </div>
     </nav>
 
-    <!-- Conteúdo Principal -->
+    
     <main class="container py-4">
         @yield('content')
     </main>
 
-    <!-- Footer -->
+   
     <footer class="footer bg-dark text-white text-center py-3 mt-auto">
         <div class="container">
             <p class="mb-0">© {{ date('Y') }} Sistema de Gestão. Todos os direitos reservados.</p>
         </div>
     </footer>
 
-    <!-- Bootstrap JS -->
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    @stack('scripts') <!-- Para scripts específicos de páginas -->
+    @stack('scripts') 
 </body>
 </html>
