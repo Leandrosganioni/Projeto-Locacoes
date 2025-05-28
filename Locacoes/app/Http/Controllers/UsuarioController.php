@@ -15,25 +15,26 @@ class UsuarioController extends Controller
      */
 
     public function store(Request $request)
-    {
+{
     $request->validate([
         'name' => 'required|string|max:255',
         'email' => 'required|email|unique:users',
         'password' => 'required|min:6'
     ]);
 
-    User::create([
+    // ✅ Aqui você define a variável $usuario
+    $usuario = User::create([
         'name' => $request->name,
         'email' => $request->email,
         'password' => Hash::make($request->password)
     ]);
 
-    return redirect()->route('usuarios.index')->with('success', 'Usuário criado com sucesso!');
+    // ✅ Agora sim a variável existe e pode ser usada aqui
+    if ($usuario) {
+        return redirect()->route('usuario.index')->with('success', 'Usuário criado com sucesso!');
+    } else {
+        return back()->with('error', 'Erro ao criar usuário!');
     }
-
-    public function index()
-    {
-        //
     }
 
     /**
@@ -41,7 +42,7 @@ class UsuarioController extends Controller
      */
     public function create()
     {
-        //
+        return view('usuario.create');
     }
 
     /**
@@ -57,22 +58,43 @@ class UsuarioController extends Controller
      */
     public function edit(string $id)
     {
-        //
+        return view('usuario.edit', compact('usuario$usuario'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, $id)
     {
-        //
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|unique:users,email,' . $id,
+        'password' => 'nullable|min:6'
+    ]);
+
+    // 🔧 Aqui está o que faltava:
+    $usuario = User::findOrFail($id);
+
+    $usuario->name = $request->name;
+    $usuario->email = $request->email;
+
+    if ($request->filled('password')) {
+        $usuario->password = Hash::make($request->password);
     }
+
+    $usuario->save();
+
+    return redirect()->route('usuario.index')->with('success', 'Usuário atualizado com sucesso!');
+    }
+
 
     /**
      * Remove the specified resource from storage.
      */
     public function destroy(string $id)
     {
-        //
+        $usuario = User::findOrFail($id);
+        $usuario->delete();
+        return redirect()->route('usuario.index')->with('success', 'Usuário removido com sucesso!');
     }
 }
