@@ -3,6 +3,12 @@
 @section('title', 'Equipamentos')
 
 @section('content')
+
+
+    <form method="POST" action="/logout">
+        @csrf
+    </form>
+
 <div class="container mt-5">
     <h1 class="mb-4">Lista de Equipamentos</h1>
     
