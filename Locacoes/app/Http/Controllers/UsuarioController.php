@@ -22,14 +22,14 @@ class UsuarioController extends Controller
         'password' => 'required|min:6'
     ]);
 
-    // ✅ Aqui você define a variável $usuario
+ 
     $usuario = User::create([
         'name' => $request->name,
         'email' => $request->email,
         'password' => Hash::make($request->password)
     ]);
 
-    // ✅ Agora sim a variável existe e pode ser usada aqui
+   
     if ($usuario) {
         return redirect()->route('usuario.index')->with('success', 'Usuário criado com sucesso!');
     } else {
@@ -72,7 +72,7 @@ class UsuarioController extends Controller
         'password' => 'nullable|min:6'
     ]);
 
-    // 🔧 Aqui está o que faltava:
+    
     $usuario = User::findOrFail($id);
 
     $usuario->name = $request->name;
