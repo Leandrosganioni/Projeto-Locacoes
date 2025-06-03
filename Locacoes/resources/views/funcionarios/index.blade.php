@@ -4,7 +4,13 @@
 
 @section('content')
 
+<style>
+    button.btn.btn-sm.btn-dark {
+        background-color: #b90c24;
+    }
 
+
+</style>
     <form method="POST" action="/logout">
         @csrf
     </form>
@@ -41,7 +47,7 @@
                         <form action="{{ route('funcionarios.destroy', $funcionario->id) }}" method="POST" style="display: inline;">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="btn btn-sm btn-danger" 
+                            <button type="submit" class="btn btn-sm btn-dark" 
                                     onclick="return confirm('Tem certeza que deseja excluir este funcionário?')">
                                 Excluir
                             </button>
