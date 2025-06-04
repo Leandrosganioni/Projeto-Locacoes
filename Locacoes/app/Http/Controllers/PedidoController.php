@@ -26,45 +26,37 @@ class PedidoController extends Controller
     }
 
     public function store(Request $request)
-{
-    $request->validate([
-        'cliente_id' => 'required|exists:clientes,id',
-        'funcionario_id' => 'required|exists:funcionarios,id',
-        'local_entrega' => 'required|string',
-        'data_entrega' => 'required|date',
-        'produtos' => 'required|array',
-        'quantidades' => 'required|array'
-    ]);
+    {
+        $request->validate([
+            'cliente_id' => 'required|exists:clientes,id',
+            'funcionario_id' => 'required|exists:funcionarios,id',
+            'local_entrega' => 'required|string',
+            'data_entrega' => 'required|date',
+            'produtos' => 'required|array',
+            'quantidades' => 'required|array',
+        ]);
 
-    $pedido = Pedido::create([
-        'cliente_id' => $request->cliente_id,
-        'funcionario_id' => $request->funcionario_id,
-        'local_entrega' => $request->local_entrega,
-        'data_entrega' => $request->data_entrega
-    ]);
+        $pedido = Pedido::create([
+            'cliente_id' => $request->cliente_id,
+            'funcionario_id' => $request->funcionario_id,
+            'local_entrega' => $request->local_entrega,
+            'data_entrega' => $request->data_entrega,
+        ]);
 
-    foreach ($request->produtos as $index => $produto_id) {
-        $quantidade = $request->quantidades[$index];
+        // Associa os produtos com as quantidades
+        foreach ($request->produtos as $produtoId) {
+            $quantidade = $request->quantidades[$produtoId] ?? 0;
 
-        
-        $equipamento = Equipamento::find($produto_id);
-
-        if ($equipamento) {
-            if ($equipamento->quantidade < $quantidade) {
-                return redirect()->back()->with('error', "Estoque insuficiente para o produto {$equipamento->nome}");
+            // Apenas associa se quantidade for maior que zero
+            if ($quantidade > 0) {
+                $pedido->produtos()->attach($produtoId, ['quantidade' => $quantidade]);
             }
-
-            $equipamento->quantidade -= $quantidade;
-            $equipamento->save();
         }
 
-        $pedido->produtos()->attach($produto_id, [
-            'quantidade' => $quantidade
-        ]);
+        return redirect()->route('pedidos.index')
+            ->with('success', 'Pedido criado com sucesso!');
     }
 
-    return redirect()->route('pedidos.index')->with('success', 'Pedido criado com sucesso!');
-}
 
 
     public function edit($id)
@@ -113,7 +105,7 @@ class PedidoController extends Controller
     {
         try {
             $pedido = Pedido::findOrFail($id);
-            $pedido->produtos()->detach(); 
+            $pedido->produtos()->detach();
             $pedido->delete();
 
             return redirect()->route('pedidos.index')->with('success', 'Pedido excluído com sucesso!');
