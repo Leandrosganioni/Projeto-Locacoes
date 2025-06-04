@@ -12,13 +12,13 @@ class Equipamento extends Model
         'quantidade', 
         'descricao_tecnica',
         'informacoes_manutencao',
-        'disponivel'
+        'imagem' 
     ];
 
-    //(F_B04)
+    // (F_B04)
     public static function consultarEstoque()
     {
-        return self::select('nome', 'quantidade', 'disponivel')
+        return self::select('nome', 'quantidade')
                  ->orderBy('nome')
                  ->get();
     }
