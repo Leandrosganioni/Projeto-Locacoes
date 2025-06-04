@@ -1,124 +1,111 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
+@extends('layouts.app')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Locação</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .hero-section {
-            background-color: #f8f9fa;
-            padding: 5rem 0;
-            margin-bottom: 3rem;
-        }
+@section('title', 'Página Inicial')
 
-        .feature-card {
-            transition: transform 0.3s;
-            height: 100%;
-        }
+@section('content')
+<style>
+    .video-section {
+        position: relative;
+        height: 500px;
+        overflow: hidden;
+    }
 
-        .feature-card:hover {
-            transform: translateY(-10px);
-        }
+    .video-section video {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: -2;
+    }
 
-        .footer {
-            background-color: #343a40;
-            color: white;
-            padding: 2rem 0;
-            margin-top: 3rem;
-        }
-    </style>
-</head>
+    .video-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.6);
+        z-index: -1;
+        background-size: cover;
+        background-position: center;
+    }
 
-<body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container">
-        <a class="navbar-brand" href="{{ route('index') }}">ELoc locações</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav me-auto">
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('index') ? 'active' : '' }}" href="{{ route('index') }}">Home</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('clientes.*') ? 'active' : '' }}" href="{{ route('clientes.index') }}">Clientes</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('funcionarios.*') ? 'active' : '' }}" href="{{ route('funcionarios.index') }}">Funcionários</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('equipamentos.*') ? 'active' : '' }}" href="{{ route('equipamentos.index') }}">Equipamentos</a>
-                </li>
-            </ul>
+    .hero-text {
+        position: relative;
+        z-index: 1;
+    }
 
-            <div class="d-flex align-items-center">
-                <span class="text-white me-3">Usuário: {{ Auth::user()->name }}</span>
-                <form action="{{ route('logout') }}" method="POST">
-                    @csrf
-                    <button class="btn btn-outline-danger btn-sm" type="submit">Sair</button>
-                </form>
+    .toggle-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        z-index: 2;
+    }
+</style>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10 video-section rounded shadow">
+
+            <video id="heroVideo" autoplay muted playsinline></video>
+            <div id="videoOverlay" class="video-overlay"></div>
+
+            <button id="toggleMode" class="btn btn-sm btn-light fw-bold toggle-btn">Desativar vídeo</button>
+
+            <div class="d-flex justify-content-center align-items-center h-100 text-center text-white hero-text px-3">
+                <div>
+                    <h1 class="fw-bold display-4 mb-3">Bem-vindo ao Eloc Locações!</h1>
+                    <p class="lead fs-5 mb-4">Sistema de locações de ferramentas e maquinários</p>
+                    <a href="{{ route('equipamentos.index') }}" class="btn btn-primary fw-bold px-5 py-3">Gerenciar Pedidos</a>
+                </div>
             </div>
         </div>
     </div>
-    </nav>
+</div>
 
+<script>
+    const videoElement = document.getElementById('heroVideo');
+    const toggleBtn = document.getElementById('toggleMode');
+    const overlay = document.getElementById('videoOverlay');
 
-    <!-- Hero Section -->
-    <section class="hero-section text-center">
-        <div class="container">
-            <h1 class="display-4">Bem-vindo ao ELoc locações</h1>
-            <p class="lead">Uma solução completa para locar seus equipamentos!</p>
-            <a href="#features" class="btn btn-primary btn-lg mt-3">Conheça mais</a>
-        </div>
-    </section>
+    const videos = [
+        "{{ asset('videos/intro1.mp4') }}",
+        "{{ asset('videos/intro2.mp4') }}",
+        "{{ asset('videos/intro3.mp4') }}",
+        "{{ asset('videos/intro4.mp4') }}"
+    ];
 
-    <!-- Features Section -->
-    <section id="features" class="container mb-5">
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="card feature-card">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">Gerenciador de Clientes</h5>
-                        <p class="card-text">Crud de todos os clientes.</p>
-                        <a href="{{ route('clientes.index') }}" class="btn btn-outline-primary">Acessar</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card feature-card">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">Gerenciador de Funcionários</h5>
-                        <p class="card-text">Crud de todos os funcionários da empresa.</p>
-                        <a href="{{ route('funcionarios.index') }}" class="btn btn-outline-primary">Acessar</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card feature-card">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">Gerenciador de Equipamentos</h5>
-                        <p class="card-text">crud de todos os equipamentos da organização.</p>
-                        <a href="{{ route('equipamentos.index') }}" class="btn btn-outline-primary">Acessar</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+    let current = 0;
+    let videoEnabled = true;
 
-    <!-- Footer -->
-    <footer class="footer text-center">
-        <div class="container">
-            <p class="mb-0">© {{ date('Y') }} Sistema de Locação. Todos os direitos reservados.</p>
-        </div>
-    </footer>
+    function playNextVideo() {
+        if (!videoEnabled) return;
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
+        videoElement.src = videos[current];
+        videoElement.load();
+        videoElement.play().catch(err => console.warn("Erro ao iniciar vídeo:", err));
+        current = (current + 1) % videos.length;
+    }
 
-</html>
+    videoElement.addEventListener('ended', playNextVideo);
+    document.addEventListener('DOMContentLoaded', playNextVideo);
+
+    toggleBtn.addEventListener('click', () => {
+        videoEnabled = !videoEnabled;
+
+        if (!videoEnabled) {
+            videoElement.pause();
+            videoElement.style.display = 'none';
+            overlay.style.backgroundImage = "url('{{ asset('images/fundo-locacoes.png') }}')";
+            toggleBtn.textContent = 'Ativar vídeo';
+        } else {
+            overlay.style.backgroundImage = '';
+            videoElement.style.display = 'block';
+            playNextVideo();
+            toggleBtn.textContent = 'Desativar vídeo';
+        }
+    });
+</script>
+@endsection
