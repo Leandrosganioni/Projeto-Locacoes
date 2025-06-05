@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pedido;
+use App\Models\PedidoProduto;
 use App\Models\Cliente;
 use App\Models\Funcionario;
 use App\Models\Equipamento;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PedidoController extends Controller
 {
@@ -26,50 +28,61 @@ class PedidoController extends Controller
     }
 
     public function store(Request $request)
-{
-    $request->validate([
-        'cliente_id' => 'required|exists:clientes,id',
-        'funcionario_id' => 'required|exists:funcionarios,id',
-        'local_entrega' => 'required|string',
-        'data_entrega' => 'required|date',
-        'produtos' => 'required|array',
-        'quantidades' => 'required|array'
-    ]);
+    {
+        $request->validate([
+            'cliente_id' => 'required|exists:clientes,id',
+            'funcionario_id' => 'required|exists:funcionarios,id',
+            'local_entrega' => 'required|string',
+            'data_entrega' => 'required|date',
+            'produtos' => 'required|array',
+            'quantidades' => 'required|array',
+        ]);
 
-    $pedido = Pedido::create([
-        'cliente_id' => $request->cliente_id,
-        'funcionario_id' => $request->funcionario_id,
-        'local_entrega' => $request->local_entrega,
-        'data_entrega' => $request->data_entrega
-    ]);
+        DB::beginTransaction();
 
-    foreach ($request->produtos as $index => $produto_id) {
-        $quantidade = $request->quantidades[$index];
+        try {
+            $pedido = Pedido::create([
+                'cliente_id' => $request->cliente_id,
+                'funcionario_id' => $request->funcionario_id,
+                'local_entrega' => $request->local_entrega,
+                'data_entrega' => $request->data_entrega
+            ]);
 
-        
-        $equipamento = Equipamento::find($produto_id);
+            foreach ($request->produtos as $equipamento_id) {
+                $quantidade = $request->quantidades[$equipamento_id] ?? 0;
 
-        if ($equipamento) {
-            if ($equipamento->quantidade < $quantidade) {
-                return redirect()->back()->with('error', "Estoque insuficiente para o produto {$equipamento->nome}");
+                if ($quantidade <= 0) {
+                    continue;
+                }
+
+                $equipamento = Equipamento::find($equipamento_id);
+
+                if (!$equipamento || $equipamento->quantidade < $quantidade) {
+                    DB::rollBack();
+                    return redirect()->back()->with('error', "Estoque insuficiente para o equipamento {$equipamento->nome}.");
+                }
+
+                $equipamento->quantidade -= $quantidade;
+                $equipamento->save();
+
+                PedidoProduto::create([
+                    'pedido_id' => $pedido->id,
+                    'equipamento_id' => $equipamento_id,
+                    'quantidade' => $quantidade
+                ]);
             }
 
-            $equipamento->quantidade -= $quantidade;
-            $equipamento->save();
+            DB::commit();
+            return redirect()->route('pedidos.index')->with('success', 'Pedido criado com sucesso!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Erro ao criar pedido: ' . $e->getMessage());
         }
-
-        $pedido->produtos()->attach($produto_id, [
-            'quantidade' => $quantidade
-        ]);
     }
-
-    return redirect()->route('pedidos.index')->with('success', 'Pedido criado com sucesso!');
-}
-
 
     public function edit($id)
     {
-        $pedido = Pedido::with('produtos')->findOrFail($id);
+        $pedido = Pedido::with('itens')->findOrFail($id);
 
         return view('pedidos.edit', [
             'pedido' => $pedido,
@@ -90,30 +103,51 @@ class PedidoController extends Controller
             'quantidades' => 'required|array'
         ]);
 
-        $pedido = Pedido::findOrFail($id);
+        DB::beginTransaction();
 
-        $pedido->update([
-            'cliente_id' => $request->cliente_id,
-            'funcionario_id' => $request->funcionario_id,
-            'local_entrega' => $request->local_entrega,
-            'data_entrega' => $request->data_entrega
-        ]);
+        try {
+            $pedido = Pedido::findOrFail($id);
 
-        $pedido->produtos()->detach();
-        foreach ($request->produtos as $index => $produto_id) {
-            $pedido->produtos()->attach($produto_id, [
-                'quantidade' => $request->quantidades[$index]
+            // Atualiza os dados principais do pedido
+            $pedido->update([
+                'cliente_id' => $request->cliente_id,
+                'funcionario_id' => $request->funcionario_id,
+                'local_entrega' => $request->local_entrega,
+                'data_entrega' => $request->data_entrega
             ]);
-        }
 
-        return redirect()->route('pedidos.index')->with('success', 'Pedido atualizado com sucesso!');
+            // Remove todos os itens anteriores do pedido
+            PedidoProduto::where('pedido_id', $pedido->id)->delete();
+
+            // Reinsere os novos itens
+            foreach ($request->produtos as $equipamento_id) {
+                $quantidade = $request->quantidades[$equipamento_id] ?? 0;
+
+                if ($quantidade <= 0) {
+                    continue;
+                }
+
+                PedidoProduto::create([
+                    'pedido_id' => $pedido->id,
+                    'equipamento_id' => $equipamento_id,
+                    'quantidade' => $quantidade
+                ]);
+            }
+
+            DB::commit();
+            return redirect()->route('pedidos.index')->with('success', 'Pedido atualizado com sucesso!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Erro ao atualizar pedido: ' . $e->getMessage());
+        }
     }
+
 
     public function destroy($id)
     {
         try {
             $pedido = Pedido::findOrFail($id);
-            $pedido->produtos()->detach(); 
+            PedidoProduto::where('pedido_id', $pedido->id)->delete();
             $pedido->delete();
 
             return redirect()->route('pedidos.index')->with('success', 'Pedido excluído com sucesso!');

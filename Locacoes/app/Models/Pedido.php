@@ -13,21 +13,21 @@ class Pedido extends Model
         'data_entrega'
     ];
 
+    // Relacionamento com Cliente
     public function cliente()
     {
         return $this->belongsTo(Cliente::class);
     }
 
+    // Relacionamento com Funcionário
     public function funcionario()
     {
         return $this->belongsTo(Funcionario::class);
     }
 
-    public function produtos()
+    // Relacionamento com os itens do pedido (pedido_produto)
+    public function itens()
     {
-        return $this->belongsToMany(Equipamento::class, 'pedido_produto')
-                    ->withPivot('quantidade')
-                    ->withTimestamps();
+        return $this->hasMany(PedidoProduto::class);
     }
 }
-

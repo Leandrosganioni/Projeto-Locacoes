@@ -36,14 +36,20 @@
             <label class="form-label">Produtos</label>
             @foreach($produtos as $produto)
                 @php
-                    $quantidade = optional($pedido->produtos->find($produto->id))->pivot->quantidade;
+                    $item = $pedido->itens->firstWhere('equipamento_id', $produto->id);
+                    $quantidade = $item?->quantidade ?? '';
                 @endphp
                 <div class="d-flex align-items-center mb-2">
-                    <input type="checkbox" class="form-check-input me-2" name="produtos[]" value="{{ $produto->id }}"
-                        {{ $quantidade ? 'checked' : '' }}>
+                    <input type="checkbox" class="form-check-input me-2"
+                           name="produtos[]" value="{{ $produto->id }}"
+                           {{ $quantidade ? 'checked' : '' }}>
                     <label class="me-2">{{ $produto->nome }}</label>
-                    <input type="number" name="quantidades[]" class="form-control ms-2" placeholder="Quantidade"
-                        value="{{ $quantidade }}" style="width: 120px;">
+                    <input type="number"
+                           name="quantidades[{{ $produto->id }}]"
+                           class="form-control ms-2"
+                           placeholder="Quantidade"
+                           value="{{ $quantidade }}"
+                           style="width: 120px;">
                 </div>
             @endforeach
         </div>
