@@ -42,6 +42,9 @@
                             <i class="bi bi-box"></i> Pedidos
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('register') }}">Cadastrar Usuário</a>
+                    </li>
                 </ul>
 
                 <div class="dropdown ms-3">
