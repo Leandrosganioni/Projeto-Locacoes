@@ -10,6 +10,7 @@
     @stack('styles')
 </head>
 
+
 <body class="d-flex flex-column min-vh-100">
 
     <nav class="navbar navbar-expand-lg bg-body border-bottom shadow-sm">
@@ -22,52 +23,84 @@
 
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto gap-2">
+
+                    {{-- Clientes: Visível para Colaboradores e Admins --}}
+                    @colaborador
                     <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center gap-1 {{ request()->routeIs('clientes.*') ? 'active text-primary fw-semibold' : '' }}" href="{{ route('clientes.index') }}">
+                        <a class="nav-link ... " href="{{ route('clientes.index') }}">
                             <i class="bi bi-people"></i> Clientes
                         </a>
                     </li>
+                    @endcolaborador
+
+                    {{-- Funcionários: Visível APENAS para Admins --}}
+                    @admin
                     <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center gap-1 {{ request()->routeIs('funcionarios.*') ? 'active text-primary fw-semibold' : '' }}" href="{{ route('funcionarios.index') }}">
+                        <a class="nav-link ..." href="{{ route('funcionarios.index') }}">
                             <i class="bi bi-person-badge"></i> Funcionários
                         </a>
                     </li>
+                    @endadmin
+
+                    {{-- Equipamentos: Visível APENAS para Admins --}}
+                    @admin
                     <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center gap-1 {{ request()->routeIs('equipamentos.*') ? 'active text-primary fw-semibold' : '' }}" href="{{ route('equipamentos.index') }}">
+                        <a class="nav-link ..." href="{{ route('equipamentos.index') }}">
                             <i class="bi bi-hammer"></i> Equipamentos
                         </a>
                     </li>
+                    @endadmin
+
+                    {{-- Pedidos: Visível para Colaboradores e Admins --}}
+                    @colaborador
                     <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center gap-1 {{ request()->routeIs('pedidos.*') ? 'active text-primary fw-semibold' : '' }}" href="{{ route('pedidos.index') }}">
+                        <a class="nav-link ..." href="{{ route('pedidos.index') }}">
                             <i class="bi bi-box"></i> Pedidos
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('register') }}">Cadastrar Usuário</a>
-                    </li>
+                    @endcolaborador
+
                 </ul>
 
+                @auth
+                {{-- Este trecho só será exibido se o usuário ESTIVER LOGADO --}}
                 <div class="dropdown ms-3">
-                    <button class="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-1 rounded-pill" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Abrir menu de usuário">
+                    <button class="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-1 rounded-pill"
+                        type="button"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false">
                         <i class="bi bi-person-circle fs-5"></i>
-                        <span class="fw-medium">{{ Auth::user()->name }}</span>
+                        <span class="fw-medium">{{ Auth::user()->nome }}</span>
                         <i class="bi bi-caret-down-fill"></i>
                     </button>
+
                     <ul class="dropdown-menu dropdown-menu-end mt-2 shadow">
                         <li>
-                            <h6 class="dropdown-header">Conta</h6>
+                            <a class="dropdown-item" href="{{ route('conta.show') }}">
+                                <i class="bi bi-person-lines-fill me-1"></i> Meus Dados
+                            </a>
                         </li>
+
+
                         <li>
                             <hr class="dropdown-divider">
                         </li>
                         <li>
                             <form action="{{ route('logout') }}" method="POST" class="d-inline">
                                 @csrf
-                                <button class="dropdown-item text-danger">Logout</button>
+                                <button type="submit" class="dropdown-item text-danger">Sair</button>
                             </form>
                         </li>
                     </ul>
                 </div>
+                @endauth
+
+                @guest
+                {{-- Este trecho é exibido para VISITANTES (não logados) --}}
+                <div class="ms-3">
+                    <a href="{{ route('login') }}" class="btn btn-primary">Entrar</a>
+                </div>
+                @endguest
             </div>
         </div>
     </nav>
