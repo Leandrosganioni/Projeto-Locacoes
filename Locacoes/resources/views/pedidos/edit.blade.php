@@ -14,9 +14,9 @@
             <label class="form-label">Cliente</label>
             <select class="form-select" name="cliente_id" required>
                 @foreach($clientes as $cliente)
-                    <option value="{{ $cliente->id }}" {{ $cliente->id == $pedido->cliente_id ? 'selected' : '' }}>
-                        {{ $cliente->nome }}
-                    </option>
+                <option value="{{ $cliente->id }}" {{ $cliente->id == $pedido->cliente_id ? 'selected' : '' }}>
+                    {{ $cliente->nome }}
+                </option>
                 @endforeach
             </select>
         </div>
@@ -25,9 +25,9 @@
             <label class="form-label">Funcionário</label>
             <select class="form-select" name="funcionario_id" required>
                 @foreach($funcionarios as $funcionario)
-                    <option value="{{ $funcionario->id }}" {{ $funcionario->id == $pedido->funcionario_id ? 'selected' : '' }}>
-                        {{ $funcionario->nome }}
-                    </option>
+                <option value="{{ $funcionario->id }}" {{ $funcionario->id == $pedido->funcionario_id ? 'selected' : '' }}>
+                    {{ $funcionario->nome }}
+                </option>
                 @endforeach
             </select>
         </div>
@@ -35,22 +35,22 @@
         <div class="mb-3">
             <label class="form-label">Produtos</label>
             @foreach($produtos as $produto)
-                @php
-                    $item = $pedido->itens->firstWhere('equipamento_id', $produto->id);
-                    $quantidade = $item?->quantidade ?? '';
-                @endphp
-                <div class="d-flex align-items-center mb-2">
-                    <input type="checkbox" class="form-check-input me-2"
-                           name="produtos[]" value="{{ $produto->id }}"
-                           {{ $quantidade ? 'checked' : '' }}>
-                    <label class="me-2">{{ $produto->nome }}</label>
-                    <input type="number"
-                           name="quantidades[{{ $produto->id }}]"
-                           class="form-control ms-2"
-                           placeholder="Quantidade"
-                           value="{{ $quantidade }}"
-                           style="width: 120px;">
-                </div>
+            @php
+            $item = $pedido->itens->firstWhere('equipamento_id', $produto->id);
+            $quantidade = $item?->quantidade ?? '';
+            @endphp
+            <div class="d-flex align-items-center mb-2">
+                <input type="checkbox" class="form-check-input me-2"
+                    name="produtos[]" value="{{ $produto->id }}"
+                    {{ $quantidade ? 'checked' : '' }}>
+                <label class="me-2">{{ $produto->nome }}</label>
+                <input type="number"
+                    name="quantidades[{{ $produto->id }}]"
+                    class="form-control ms-2"
+                    placeholder="Quantidade"
+                    value="{{ $quantidade }}"
+                    style="width: 120px;">
+            </div>
             @endforeach
         </div>
 
