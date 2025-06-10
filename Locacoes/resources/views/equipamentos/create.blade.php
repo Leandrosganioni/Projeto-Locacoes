@@ -6,7 +6,7 @@
 <div class="container mt-5">
     <h1 class="mb-4">Adicionar Novo Equipamento</h1>
     
-    <form method="POST" action="{{ route('equipamentos.store') }}">
+    <form method="POST" action="{{ route('equipamentos.store') }}" enctype="multipart/form-data">
         @csrf
         
         <div class="mb-3">
@@ -32,6 +32,11 @@
         <div class="mb-3">
             <label for="informacoes_manutencao" class="form-label">Informações de Manutenção</label>
             <input type="text" class="form-control" id="informacoes_manutencao" name="informacoes_manutencao" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="imagem" class="form-label">Imagem do Equipamento</label>
+            <input type="file" class="form-control" id="imagem" name="imagem" accept="image/*">
         </div>
         
         <button type="submit" class="btn btn-primary">Salvar</button>
