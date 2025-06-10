@@ -65,5 +65,16 @@
 
     <!-- Bootstrap JS opcional -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    document.querySelector('form').addEventListener('submit', function(event) {
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('password_confirmation').value;
+
+        if (password !== confirmPassword) {
+            event.preventDefault();
+            alert('As senhas não coincidem!');
+        }
+    });
+</script>
 </body>
 </html>
