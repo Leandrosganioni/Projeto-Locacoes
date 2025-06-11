@@ -43,13 +43,13 @@
                     @endadmin
 
                     {{-- Equipamentos: Visível APENAS para Admins --}}
-                    @admin
+                    @colaborador
                     <li class="nav-item">
                         <a class="nav-link ..." href="{{ route('equipamentos.index') }}">
                             <i class="bi bi-hammer"></i> Equipamentos
                         </a>
                     </li>
-                    @endadmin
+                    @endcolaborador
 
                     {{-- Pedidos: Visível para Colaboradores e Admins --}}
                     @colaborador

@@ -16,9 +16,8 @@ Route::get("/login", [AuthController::class, 'showFormLogin'])->name('login');
 Route::get('/', [AuthController::class, 'showFormLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::middleware("auth")->group(function (){
-    Route::resource("clientes", ClienteController::class);
-    Route::resource('funcionarios', FuncionarioController::class);
-    Route::resource('equipamentos', EquipamentoController::class);
+    
+   
     Route::post("/logout", [AuthController::class, "logout"])->name('logout');
 });
 
@@ -26,10 +25,16 @@ Route::middleware(['auth'])->get('/conta', [FuncionarioController::class, 'showC
 
 Route::middleware(['auth', 'check.nivel:ADMINISTRADOR'])->group(function () {
     Route::resource('funcionarios', FuncionarioController::class);
+    
+    
+    
 });
 
 Route::middleware(['auth', 'check.nivel:COLABORADOR,ADMINISTRADOR'])->group(function () {
     Route::resource('pedidos', PedidoController::class);
+    Route::resource("clientes", ClienteController::class);
+    Route::resource('equipamentos', EquipamentoController::class);
+    
 });
 
 
@@ -55,7 +60,7 @@ Route::post('/usuario', [UsuarioController::class, 'store'])->name('usuario.stor
 
 
 Route::resource('clientes', ClienteController::class);
-Route::resource('funcionarios', FuncionarioController::class);
+
 Route::resource('equipamentos', EquipamentoController::class);
 Route::resource('pedidos', PedidoController::class); 
 
