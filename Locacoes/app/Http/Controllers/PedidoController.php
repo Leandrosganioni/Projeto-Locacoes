@@ -108,7 +108,7 @@ class PedidoController extends Controller
         try {
             $pedido = Pedido::findOrFail($id);
 
-            // Atualiza os dados principais do pedido
+            
             $pedido->update([
                 'cliente_id' => $request->cliente_id,
                 'funcionario_id' => $request->funcionario_id,
@@ -116,10 +116,10 @@ class PedidoController extends Controller
                 'data_entrega' => $request->data_entrega
             ]);
 
-            // Remove todos os itens anteriores do pedido
+            
             PedidoProduto::where('pedido_id', $pedido->id)->delete();
 
-            // Reinsere os novos itens
+            
             foreach ($request->produtos as $equipamento_id) {
                 $quantidade = $request->quantidades[$equipamento_id] ?? 0;
 

@@ -9,7 +9,7 @@ class EquipamentoController extends Controller
 {
     public function index()
     {
-        $equipamentos = Equipamento::all(); 
+        $equipamentos = Equipamento::all();
         return view('equipamentos.index', compact('equipamentos'));
     }
 
@@ -23,17 +23,28 @@ class EquipamentoController extends Controller
         $request->validate([
             'nome' => 'required',
             'tipo' => 'required',
-            'quantidade' => 'required',
+            'quantidade' => 'required|integer',
             'descricao_tecnica' => 'required',
-            'informacoes_manutencao' => 'required'
+            'informacoes_manutencao' => 'required',
+            'imagem' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048'
         ]);
 
-        Equipamento::create($request->all());
+        $data = $request->all();
+
+        if ($request->hasFile('imagem')) {
+            $arquivo = $request->file('imagem');
+            $nomeArquivo = time() . '_' . $arquivo->getClientOriginalName();
+            $arquivo->move(public_path('images/equipamentos'), $nomeArquivo);
+            $data['imagem'] = $nomeArquivo;
+        }
+
+        Equipamento::create($data);
 
         return redirect()
             ->route('equipamentos.index')
             ->with('success', 'Equipamento cadastrado com sucesso!');
     }
+
 
     public function show(Equipamento $equipamento)
     {
@@ -47,30 +58,45 @@ class EquipamentoController extends Controller
 
     public function update(Request $request, Equipamento $equipamento)
     {
-        
         $request->validate([
             'nome' => 'required|string|max:150',
-            'tipo' => 'required|string|max: 50',
+            'tipo' => 'required|string|max:50',
             'quantidade' => 'required|integer',
             'descricao_tecnica' => 'required|string',
-            'informacoes_manutencao' => 'required|string'
+            'informacoes_manutencao' => 'required|string',
+            'imagem' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048'
         ]);
 
-        $equipamento->update($request->all());
+        $data = $request->all();
+
+        if ($request->hasFile('imagem')) {
+
+            if ($equipamento->imagem && file_exists(public_path('images/equipamentos/' . $equipamento->imagem))) {
+                unlink(public_path('images/equipamentos/' . $equipamento->imagem));
+            }
+
+            $arquivo = $request->file('imagem');
+            $nomeArquivo = time() . '_' . $arquivo->getClientOriginalName();
+            $arquivo->move(public_path('images/equipamentos'), $nomeArquivo);
+            $data['imagem'] = $nomeArquivo;
+        }
+
+        $equipamento->update($data);
 
         return redirect()->route('equipamentos.index')
-                         ->with('success', 'Equipamento atualizado com sucesso!');
+            ->with('success', 'Equipamento atualizado com sucesso!');
     }
+
 
     public function destroy(Equipamento $equipamento)
     {
         try {
             $equipamento->delete();
             return redirect()->route('equipamentos.index')
-                           ->with('success', 'Equipamento excluído com sucesso!');
+                ->with('success', 'Equipamento excluído com sucesso!');
         } catch (\Exception $e) {
             return redirect()->route('equipamentos.index')
-                           ->with('error', 'Erro ao excluir Equipamento: ' . $e->getMessage());
+                ->with('error', 'Erro ao excluir Equipamento: ' . $e->getMessage());
         }
     }
 }
