@@ -2,20 +2,30 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
+use App\Models\Funcionario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
-    public function showFormLogin(){
+    public function showFormLogin()
+    {
         return view('login');
     }
 
-    public function login(Request $request){
+    public function login(Request $request)
+    {
         $credenciais = $request->only('email', 'password');
 
-        if (Auth::attempt($credenciais)){
+        $funcionario = \App\Models\Funcionario::where('email', $credenciais['email'])->first();
+
+        if (!$funcionario || $funcionario->nivel_acesso === 'FUNCIONARIO') {
+            return back()->withErrors([
+                'login' => 'Você não tem permissão para acessar o sistema.',
+            ]);
+        }
+
+        if (Auth::attempt($credenciais)) {
             $request->session()->regenerate();
             return redirect()->intended('/index');
         }
@@ -25,7 +35,9 @@ class AuthController extends Controller
         ]);
     }
 
-    public function logout(Request $request){
+
+    public function logout(Request $request)
+    {
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
@@ -36,7 +48,8 @@ class AuthController extends Controller
         return view('register');
     }
 
-    public function create(Request $request){
+    public function create(Request $request)
+    {
         $validated = $request->validate(
             [
                 'name' => 'required',
@@ -44,19 +57,20 @@ class AuthController extends Controller
                 'password' => 'required'
             ],
             [
-                'name.required' => '', 
+                'name.required' => '',
             ]
-            );
+        );
 
-        $usuario = new User();
+        $usuario = new Funcionario();
 
-        $usuario->name = $validated['name'];
+        $usuario->nome = $validated['name'];
         $usuario->email = $validated['email'];
         $usuario->password = bcrypt($validated['password']);
+        $usuario->nivel_acesso = 'COLABORADOR'; // ou 'ADMINISTRADOR'
 
         $usuario->save();
 
+
         return redirect('/index');
     }
-
 }

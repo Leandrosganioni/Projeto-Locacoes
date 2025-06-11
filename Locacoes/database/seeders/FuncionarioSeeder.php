@@ -3,21 +3,26 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Funcionario;
-use Faker\Factory as Faker;
+use App\Models\Funcionario; // Importe o seu Model
+use Illuminate\Support\Facades\Hash; // Importe o Hash
 
 class FuncionarioSeeder extends Seeder
 {
+    /**
+     * Run the database seeds.
+     */
     public function run(): void
     {
-        $faker = Faker::create('pt_BR');
-
-        for ($i = 0; $i < 10; $i++) {
-            Funcionario::create([
-                'nome' => $faker->name,
-                'cpf' => $faker->cpf(false),
-                'telefone' => $faker->phoneNumber,
-            ]);
-        }
+        // Cria um funcionário para verificar se já existe um com este email
+        Funcionario::firstOrCreate(
+            ['email' => 'adm@adm.com'], // Chave única para evitar duplicatas
+            [
+                'nome' => 'Administrador Principal',
+                'cpf' => '000.000.000-00',
+                'telefone' => '(00) 00000-0000',
+                'password' => Hash::make('123'),
+                'nivel_acesso' => 'ADMINISTRADOR'
+            ]
+        );
     }
 }
