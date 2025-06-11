@@ -58,7 +58,7 @@
                 <div>
                     <h1 class="fw-bold display-4 mb-3">Bem-vindo ao Eloc Locações!</h1>
                     <p class="lead fs-5 mb-4">Sistema de locações de ferramentas e maquinários</p>
-                    <a href="{{ route('pedidos.index') }}" class="btn btn-primary fw-bold px-5 py-3">Gerenciar Pedidos</a>
+                    <a href="{{ route('equipamentos.index') }}" class="btn btn-primary fw-bold px-5 py-3">Gerenciar Pedidos</a>
                 </div>
             </div>
         </div>

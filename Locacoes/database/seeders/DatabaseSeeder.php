@@ -2,7 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
+// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -11,9 +14,18 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Adicione esta linha para chamar o seu novo seeder
-        $this->call([
-            FuncionarioSeeder::class,
+        User::create([
+            'name' => "adm", //'name' => $reques->name,
+            'email' => "adm@adm.com", //'email' => $request->email,
+            'password' => Hash::make("123"), 
+                        //'password' => Hash::make($request->password),
         ]);
+        
+        $this->call([
+            ClienteSeeder::class,
+            FuncionarioSeeder::class,
+            #EquipamentoSeeder::class,
+    ]);
+
     }
 }
