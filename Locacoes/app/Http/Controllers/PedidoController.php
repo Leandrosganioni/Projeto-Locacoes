@@ -106,9 +106,18 @@ class PedidoController extends Controller
         DB::beginTransaction();
 
         try {
-            $pedido = Pedido::findOrFail($id);
+            $pedido = Pedido::with('itens')->findOrFail($id);
 
-            
+            // Devolve o estoque dos itens anteriores
+            foreach ($pedido->itens as $item) {
+                $equipamento = Equipamento::find($item->equipamento_id);
+                if ($equipamento) {
+                    $equipamento->quantidade += $item->quantidade;
+                    $equipamento->save();
+                }
+            }
+
+            // Atualiza os dados do pedido
             $pedido->update([
                 'cliente_id' => $request->cliente_id,
                 'funcionario_id' => $request->funcionario_id,
@@ -116,16 +125,26 @@ class PedidoController extends Controller
                 'data_entrega' => $request->data_entrega
             ]);
 
-            
+            // Remove os itens antigos
             PedidoProduto::where('pedido_id', $pedido->id)->delete();
 
-            
+            // Adiciona os novos itens e ajusta estoque
             foreach ($request->produtos as $equipamento_id) {
                 $quantidade = $request->quantidades[$equipamento_id] ?? 0;
 
                 if ($quantidade <= 0) {
                     continue;
                 }
+
+                $equipamento = Equipamento::find($equipamento_id);
+
+                if (!$equipamento || $equipamento->quantidade < $quantidade) {
+                    DB::rollBack();
+                    return redirect()->back()->with('error', "Estoque insuficiente para o equipamento {$equipamento->nome}.");
+                }
+
+                $equipamento->quantidade -= $quantidade;
+                $equipamento->save();
 
                 PedidoProduto::create([
                     'pedido_id' => $pedido->id,
@@ -141,6 +160,7 @@ class PedidoController extends Controller
             return redirect()->back()->with('error', 'Erro ao atualizar pedido: ' . $e->getMessage());
         }
     }
+
 
 
     public function destroy($id)
