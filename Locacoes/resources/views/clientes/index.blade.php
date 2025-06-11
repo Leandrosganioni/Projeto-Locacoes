@@ -74,6 +74,7 @@
 
 @push('scripts')
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
@@ -90,7 +91,7 @@
     $(document).ready(function() {
         $('#clientes-table').DataTable({
             language: {
-                url: 'http://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'
+                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'
             },
             dom: "<'row mb-3'<'col-sm-6'l><'col-sm-6 text-end'B>>" +
                 "<'row'<'col-sm-12'tr>>" +
