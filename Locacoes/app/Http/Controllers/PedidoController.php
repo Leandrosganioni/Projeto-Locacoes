@@ -106,9 +106,18 @@ class PedidoController extends Controller
         DB::beginTransaction();
 
         try {
-            $pedido = Pedido::findOrFail($id);
+            $pedido = Pedido::with('itens')->findOrFail($id);
 
-            
+            //devolvendo ao pedido antigo
+            foreach ($pedido->itens as $item) {
+                $equipamento = Equipamento::find($item->equipamento_id);
+                if ($equipamento) {
+                    $equipamento->quantidade += $item->quantidade;
+                    $equipamento->save();
+                }
+            }
+
+            //update
             $pedido->update([
                 'cliente_id' => $request->cliente_id,
                 'funcionario_id' => $request->funcionario_id,
@@ -116,16 +125,26 @@ class PedidoController extends Controller
                 'data_entrega' => $request->data_entrega
             ]);
 
-            
+            //removing
             PedidoProduto::where('pedido_id', $pedido->id)->delete();
 
-            
+            //add itens e estoque
             foreach ($request->produtos as $equipamento_id) {
                 $quantidade = $request->quantidades[$equipamento_id] ?? 0;
 
                 if ($quantidade <= 0) {
                     continue;
                 }
+
+                $equipamento = Equipamento::find($equipamento_id);
+
+                if (!$equipamento || $equipamento->quantidade < $quantidade) {
+                    DB::rollBack();
+                    return redirect()->back()->with('error', "Estoque insuficiente para o equipamento {$equipamento->nome}.");
+                }
+
+                $equipamento->quantidade -= $quantidade;
+                $equipamento->save();
 
                 PedidoProduto::create([
                     'pedido_id' => $pedido->id,
@@ -143,15 +162,31 @@ class PedidoController extends Controller
     }
 
 
+
     public function destroy($id)
     {
+        DB::beginTransaction();
+
         try {
-            $pedido = Pedido::findOrFail($id);
+            $pedido = Pedido::with('itens')->findOrFail($id);
+
+            //devolvendo ao excluir os produtos
+            foreach ($pedido->itens as $item) {
+                $equipamento = Equipamento::find($item->equipamento_id);
+                if ($equipamento) {
+                    $equipamento->quantidade += $item->quantidade;
+                    $equipamento->save();
+                }
+            }
+
+            //remove all
             PedidoProduto::where('pedido_id', $pedido->id)->delete();
             $pedido->delete();
 
+            DB::commit();
             return redirect()->route('pedidos.index')->with('success', 'Pedido excluído com sucesso!');
         } catch (\Exception $e) {
+            DB::rollBack();
             return redirect()->route('pedidos.index')->with('error', 'Erro ao excluir pedido: ' . $e->getMessage());
         }
     }
