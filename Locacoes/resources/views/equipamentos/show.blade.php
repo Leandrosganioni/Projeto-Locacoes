@@ -3,21 +3,25 @@
 @section('title', 'Detalhes do Equipamento')
 
 @section('content')
-
-
 <div class="container mt-5">
     <h1 class="mb-4">Detalhes do Equipamento</h1>
 
     <div class="card">
         <div class="card-body">
-            
+            @php
+                $imgPath = public_path('images/equipamentos/' . $equipamento->imagem);
+                $temImagem = $equipamento->imagem && is_file($imgPath);
+            @endphp
             <div class="mb-3 text-center">
-                <img src="{{ asset('images/equipamentos/' . $equipamento->imagem) }}"
-                    alt="Imagem do Equipamento"
-                    class="img-thumbnail"
-                    style="max-width: 300px;">
+                @if($temImagem)
+                    <img src="{{ asset('images/equipamentos/' . $equipamento->imagem) }}"
+                         alt="Imagem do Equipamento"
+                         class="img-thumbnail"
+                         style="max-width: 300px;">
+                @else
+                    <span class="text-muted">Sem imagem</span>
+                @endif
             </div>
-            
 
             <h5 class="card-title">{{ $equipamento->nome }}</h5>
             <p class="card-text"><strong>Tipo:</strong> {{ $equipamento->tipo }}</p>
@@ -36,7 +40,6 @@
         </div>
     </div>
 </div>
-
 @endsection
 
 @push('styles')

@@ -3,8 +3,6 @@
 @section('title', 'Equipamentos')
 
 @section('content')
-
-
     <div class="container mt-5">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="mb-0">Lista de Equipamentos</h1>
@@ -14,15 +12,17 @@
         </div>
 
         @if(session('success'))
-            <div class="alert alert-success">
-                {{ session('success') }}
-            </div>
+            <div class="alert alert-success">{{ session('success') }}</div>
+        @endif
+        @if(session('error'))
+            <div class="alert alert-danger">{{ session('error') }}</div>
         @endif
 
         <div class="table-responsive">
             <table id="equipamentos-table" class="table table-striped table-hover align-middle">
                 <thead class="table-dark">
                     <tr>
+                        <th style="width:120px">Imagem</th>
                         <th>Nome</th>
                         <th>Tipo</th>
                         <th>Quantidade</th>
@@ -31,7 +31,18 @@
                 </thead>
                 <tbody>
                     @forelse($equipamentos as $equipamento)
+                        @php
+                            $imgPath = public_path('images/equipamentos/' . $equipamento->imagem);
+                            $temImagem = $equipamento->imagem && is_file($imgPath);
+                        @endphp
                         <tr>
+                            <td>
+                                @if($temImagem)
+                                    <img src="{{ asset('images/equipamentos/'.$equipamento->imagem) }}" alt="Imagem" style="max-height:80px">
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
                             <td>{{ $equipamento->nome }}</td>
                             <td>{{ $equipamento->tipo }}</td>
                             <td>{{ $equipamento->quantidade }}</td>
@@ -54,7 +65,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="text-center">Nenhum equipamento cadastrado</td>
+                            <td colspan="5" class="text-center">Nenhum equipamento cadastrado</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -64,7 +75,6 @@
 @endsection
 
 @push('styles')
-    
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
@@ -72,11 +82,8 @@
 
 @push('scripts')
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-
-    
     <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
@@ -86,20 +93,18 @@
     <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
 
     <script>
-        $(document).ready(function () {
+        $(function () {
             $('#equipamentos-table').DataTable({
-                language: {
-                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'
-                },
+                language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' },
                 dom: "<'row mb-3'<'col-sm-6'l><'col-sm-6 text-end'B>>" +
                      "<'row'<'col-sm-12'tr>>" +
                      "<'row mt-3'<'col-sm-5'i><'col-sm-7'p>>",
                 buttons: [
                     { extend: 'copyHtml5', className: 'btn btn-sm btn-secondary me-1', text: '<i class="bi bi-clipboard"></i> Copiar' },
-                    { extend: 'csvHtml5', className: 'btn btn-sm btn-success me-1', text: '<i class="bi bi-filetype-csv"></i> CSV' },
-                    { extend: 'excelHtml5', className: 'btn btn-sm btn-success me-1', text: '<i class="bi bi-file-earmark-excel"></i> Excel' },
-                    { extend: 'pdfHtml5', className: 'btn btn-sm btn-danger me-1', text: '<i class="bi bi-file-earmark-pdf"></i> PDF' },
-                    { extend: 'print', className: 'btn btn-sm btn-primary', text: '<i class="bi bi-printer"></i> Imprimir' }
+                    { extend: 'csvHtml5',  className: 'btn btn-sm btn-success me-1',  text: '<i class="bi bi-filetype-csv"></i> CSV' },
+                    { extend: 'excelHtml5',className: 'btn btn-sm btn-success me-1',  text: '<i class="bi bi-file-earmark-excel"></i> Excel' },
+                    { extend: 'pdfHtml5',  className: 'btn btn-sm btn-danger me-1',   text: '<i class="bi bi-file-earmark-pdf"></i> PDF' },
+                    { extend: 'print',     className: 'btn btn-sm btn-primary',       text: '<i class="bi bi-printer"></i> Imprimir' }
                 ]
             });
         });
