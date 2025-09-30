@@ -61,7 +61,10 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="4" class="text-center">Nenhum funcionário cadastrado</td>
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
                     </tr>
                 @endforelse
             </tbody>

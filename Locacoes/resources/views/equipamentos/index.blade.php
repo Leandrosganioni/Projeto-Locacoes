@@ -65,7 +65,11 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center">Nenhum equipamento cadastrado</td>
+                            <td class="text-center">-</td>
+                            <td class="text-center">-</td>
+                            <td class="text-center">-</td>
+                            <td class="text-center">-</td>
+                            <td class="text-center">-</td>
                         </tr>
                     @endforelse
                 </tbody>
