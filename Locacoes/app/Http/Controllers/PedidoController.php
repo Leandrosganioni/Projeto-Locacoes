@@ -1,5 +1,6 @@
 <?php
 
+
 namespace App\Http\Controllers;
 
 use App\Models\Pedido;
@@ -36,6 +37,7 @@ class PedidoController extends Controller
             'data_entrega' => 'required|date',
             'produtos' => 'required|array',
             'quantidades' => 'required|array',
+            'quantidades.*' => 'required|integer|min:1', // Validação para cada quantidade
         ]);
 
         DB::beginTransaction();
@@ -48,20 +50,21 @@ class PedidoController extends Controller
                 'data_entrega' => $request->data_entrega
             ]);
 
+            // Verificação de estoque antes do loop
             foreach ($request->produtos as $equipamento_id) {
                 $quantidade = $request->quantidades[$equipamento_id] ?? 0;
-
-                if ($quantidade <= 0) {
-                    continue;
-                }
-
                 $equipamento = Equipamento::find($equipamento_id);
 
                 if (!$equipamento || $equipamento->quantidade < $quantidade) {
                     DB::rollBack();
                     return redirect()->back()->with('error', "Estoque insuficiente para o equipamento {$equipamento->nome}.");
                 }
+            }
 
+            foreach ($request->produtos as $equipamento_id) {
+                $quantidade = $request->quantidades[$equipamento_id] ?? 0;
+
+                $equipamento = Equipamento::find($equipamento_id);
                 $equipamento->quantidade -= $quantidade;
                 $equipamento->save();
 
@@ -100,7 +103,8 @@ class PedidoController extends Controller
             'local_entrega' => 'required|string',
             'data_entrega' => 'required|date',
             'produtos' => 'required|array',
-            'quantidades' => 'required|array'
+            'quantidades' => 'required|array',
+            'quantidades.*' => 'required|integer|min:1', // Validação para cada quantidade
         ]);
 
         DB::beginTransaction();
@@ -108,7 +112,7 @@ class PedidoController extends Controller
         try {
             $pedido = Pedido::with('itens')->findOrFail($id);
 
-            //devolvendo ao pedido antigo
+            // Devolvendo ao estoque os produtos do pedido original
             foreach ($pedido->itens as $item) {
                 $equipamento = Equipamento::find($item->equipamento_id);
                 if ($equipamento) {
@@ -117,7 +121,9 @@ class PedidoController extends Controller
                 }
             }
 
-            //update
+            // Removendo os itens do pedido original
+            PedidoProduto::where('pedido_id', $pedido->id)->delete();
+
             $pedido->update([
                 'cliente_id' => $request->cliente_id,
                 'funcionario_id' => $request->funcionario_id,
@@ -125,24 +131,22 @@ class PedidoController extends Controller
                 'data_entrega' => $request->data_entrega
             ]);
 
-            //removing
-            PedidoProduto::where('pedido_id', $pedido->id)->delete();
-
-            //add itens e estoque
+            // Verificação de estoque antes do loop
             foreach ($request->produtos as $equipamento_id) {
                 $quantidade = $request->quantidades[$equipamento_id] ?? 0;
-
-                if ($quantidade <= 0) {
-                    continue;
-                }
-
                 $equipamento = Equipamento::find($equipamento_id);
 
                 if (!$equipamento || $equipamento->quantidade < $quantidade) {
                     DB::rollBack();
                     return redirect()->back()->with('error', "Estoque insuficiente para o equipamento {$equipamento->nome}.");
                 }
+            }
 
+            // Adicionando os novos itens ao pedido
+            foreach ($request->produtos as $equipamento_id) {
+                $quantidade = $request->quantidades[$equipamento_id] ?? 0;
+
+                $equipamento = Equipamento::find($equipamento_id);
                 $equipamento->quantidade -= $quantidade;
                 $equipamento->save();
 
@@ -161,8 +165,6 @@ class PedidoController extends Controller
         }
     }
 
-
-
     public function destroy($id)
     {
         DB::beginTransaction();
@@ -170,7 +172,7 @@ class PedidoController extends Controller
         try {
             $pedido = Pedido::with('itens')->findOrFail($id);
 
-            //devolvendo ao excluir os produtos
+            // Devolvendo ao estoque os produtos do pedido
             foreach ($pedido->itens as $item) {
                 $equipamento = Equipamento::find($item->equipamento_id);
                 if ($equipamento) {
@@ -179,7 +181,7 @@ class PedidoController extends Controller
                 }
             }
 
-            //remove all
+            // Removendo os itens do pedido
             PedidoProduto::where('pedido_id', $pedido->id)->delete();
             $pedido->delete();
 

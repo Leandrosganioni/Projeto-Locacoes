@@ -9,17 +9,14 @@ class Equipamento extends Model
     protected $fillable = [
         'nome',
         'tipo',
-        'quantidade', 
+        'quantidade',
         'descricao_tecnica',
         'informacoes_manutencao',
-        'imagem' 
+        'imagem',
     ];
 
-    // (F_B04)
     public static function consultarEstoque()
     {
-        return self::select('nome', 'quantidade')
-                 ->orderBy('nome')
-                 ->get();
+        return self::select('nome','quantidade')->orderBy('nome')->get();
     }
 }
