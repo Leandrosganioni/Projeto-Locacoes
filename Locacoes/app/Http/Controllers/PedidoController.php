@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Http\Controllers;
 
 use App\Models\Pedido;
@@ -37,11 +36,10 @@ class PedidoController extends Controller
             'data_entrega' => 'required|date',
             'produtos' => 'required|array',
             'quantidades' => 'required|array',
-            'quantidades.*' => 'required|integer|min:1', // Validação para cada quantidade
+            'quantidades.*' => 'required|integer|min:1',
         ]);
 
         DB::beginTransaction();
-
         try {
             $pedido = Pedido::create([
                 'cliente_id' => $request->cliente_id,
@@ -50,29 +48,40 @@ class PedidoController extends Controller
                 'data_entrega' => $request->data_entrega
             ]);
 
-            // Verificação de estoque antes do loop
+            // 1) VERIFICA disponibilidade (sem abater aqui)
             foreach ($request->produtos as $equipamento_id) {
-                $quantidade = $request->quantidades[$equipamento_id] ?? 0;
+                $quantidade = (int)($request->quantidades[$equipamento_id] ?? 0);
                 $equipamento = Equipamento::find($equipamento_id);
+                $nome = $equipamento ? $equipamento->nome : "ID {$equipamento_id}";
 
-                if (!$equipamento || $equipamento->quantidade < $quantidade) {
+                if (!$equipamento) {
                     DB::rollBack();
-                    return redirect()->back()->with('error', "Estoque insuficiente para o equipamento {$equipamento->nome}.");
+                    return redirect()->back()->with('error', "Equipamento não encontrado: {$nome}.");
+                }
+
+                if ($equipamento->quantidade_disponivel < $quantidade) {
+                    DB::rollBack();
+                    return redirect()->back()->with('error', "Estoque insuficiente para o equipamento {$nome}.");
                 }
             }
 
+            // 2) CRIA item + RESERVA via model (é aqui que baixa disponibilidade)
             foreach ($request->produtos as $equipamento_id) {
-                $quantidade = $request->quantidades[$equipamento_id] ?? 0;
-
+                $quantidade  = (int)($request->quantidades[$equipamento_id] ?? 0);
                 $equipamento = Equipamento::find($equipamento_id);
-                $equipamento->quantidade -= $quantidade;
-                $equipamento->save();
 
-                PedidoProduto::create([
-                    'pedido_id' => $pedido->id,
-                    'equipamento_id' => $equipamento_id,
-                    'quantidade' => $quantidade
+                $item = PedidoProduto::create([
+                    'pedido_id'           => $pedido->id,
+                    'equipamento_id'      => $equipamento_id,
+                    'quantidade'          => $quantidade,
+                    'status'              => PedidoProduto::STATUS_RESERVADO,
+                    'daily_rate_snapshot' => (float)($equipamento->daily_rate ?? 0),
                 ]);
+
+                if (!$item->reservar()) { // aqui reduz quantidade_disponivel usando Equipamento::reservar
+                    DB::rollBack();
+                    return redirect()->back()->with('error', "Falha ao reservar {$equipamento->nome}.");
+                }
             }
 
             DB::commit();
@@ -96,100 +105,97 @@ class PedidoController extends Controller
     }
 
     public function update(Request $request, $id)
-    {
-        $request->validate([
-            'cliente_id' => 'required|exists:clientes,id',
-            'funcionario_id' => 'required|exists:funcionarios,id',
-            'local_entrega' => 'required|string',
-            'data_entrega' => 'required|date',
-            'produtos' => 'required|array',
-            'quantidades' => 'required|array',
-            'quantidades.*' => 'required|integer|min:1', // Validação para cada quantidade
+{
+    $request->validate([
+        'cliente_id' => 'required|exists:clientes,id',
+        'funcionario_id' => 'required|exists:funcionarios,id',
+        'local_entrega' => 'required|string',
+        'data_entrega' => 'required|date',
+        'produtos' => 'required|array',
+        'quantidades' => 'required|array',
+        'quantidades.*' => 'required|integer|min:1',
+    ]);
+
+    DB::beginTransaction();
+    try {
+        $pedido = Pedido::with('itens.equipamento')->findOrFail($id);
+
+        // 1) DEVOLVE estoque dos itens atuais de forma consistente
+        foreach ($pedido->itens as $item) {
+            // se o item estiver ‘em_locacao’, você pode decidir bloquear update ou devolver()
+            $item->cancelar(); // libera a quantidade_disponivel
+        }
+
+        // 2) Atualiza dados do pedido
+        $pedido->update([
+            'cliente_id' => $request->cliente_id,
+            'funcionario_id' => $request->funcionario_id,
+            'local_entrega' => $request->local_entrega,
+            'data_entrega' => $request->data_entrega
         ]);
 
-        DB::beginTransaction();
-
-        try {
-            $pedido = Pedido::with('itens')->findOrFail($id);
-
-            // Devolvendo ao estoque os produtos do pedido original
-            foreach ($pedido->itens as $item) {
-                $equipamento = Equipamento::find($item->equipamento_id);
-                if ($equipamento) {
-                    $equipamento->quantidade += $item->quantidade;
-                    $equipamento->save();
-                }
+        // 3) Verifica disponibilidade dos novos itens
+        foreach ($request->produtos as $equipamento_id) {
+            $quantidade = (int)($request->quantidades[$equipamento_id] ?? 0);
+            $equipamento = Equipamento::find($equipamento_id);
+            if (!$equipamento || $equipamento->quantidade_disponivel < $quantidade) {
+                DB::rollBack();
+                return back()->with('error', "Estoque insuficiente para o equipamento {$equipamento->nome}.");
             }
+        }
 
-            // Removendo os itens do pedido original
-            PedidoProduto::where('pedido_id', $pedido->id)->delete();
+        // 4) Recria itens e reserva via model
+        // (opcional: limpar registros antigos do banco)
+        PedidoProduto::where('pedido_id', $pedido->id)->delete();
 
-            $pedido->update([
-                'cliente_id' => $request->cliente_id,
-                'funcionario_id' => $request->funcionario_id,
-                'local_entrega' => $request->local_entrega,
-                'data_entrega' => $request->data_entrega
+        foreach ($request->produtos as $equipamento_id) {
+            $quantidade  = (int)$request->quantidades[$equipamento_id];
+            $equipamento = Equipamento::find($equipamento_id);
+
+            $item = PedidoProduto::create([
+                'pedido_id'           => $pedido->id,
+                'equipamento_id'      => $equipamento_id,
+                'quantidade'          => $quantidade,
+                'status'              => PedidoProduto::STATUS_RESERVADO,
+                'daily_rate_snapshot' => (float)($equipamento->daily_rate ?? 0),
             ]);
 
-            // Verificação de estoque antes do loop
-            foreach ($request->produtos as $equipamento_id) {
-                $quantidade = $request->quantidades[$equipamento_id] ?? 0;
-                $equipamento = Equipamento::find($equipamento_id);
-
-                if (!$equipamento || $equipamento->quantidade < $quantidade) {
-                    DB::rollBack();
-                    return redirect()->back()->with('error', "Estoque insuficiente para o equipamento {$equipamento->nome}.");
-                }
+            if (!$item->reservar()) {
+                DB::rollBack();
+                return back()->with('error', "Falha ao reservar {$equipamento->nome}.");
             }
-
-            // Adicionando os novos itens ao pedido
-            foreach ($request->produtos as $equipamento_id) {
-                $quantidade = $request->quantidades[$equipamento_id] ?? 0;
-
-                $equipamento = Equipamento::find($equipamento_id);
-                $equipamento->quantidade -= $quantidade;
-                $equipamento->save();
-
-                PedidoProduto::create([
-                    'pedido_id' => $pedido->id,
-                    'equipamento_id' => $equipamento_id,
-                    'quantidade' => $quantidade
-                ]);
-            }
-
-            DB::commit();
-            return redirect()->route('pedidos.index')->with('success', 'Pedido atualizado com sucesso!');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()->back()->with('error', 'Erro ao atualizar pedido: ' . $e->getMessage());
         }
+
+        DB::commit();
+        return redirect()->route('pedidos.index')->with('success', 'Pedido atualizado com sucesso!');
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return back()->with('error', 'Erro ao atualizar pedido: ' . $e->getMessage());
     }
+}
+
 
     public function destroy($id)
-    {
-        DB::beginTransaction();
+{
+    DB::beginTransaction();
+    try {
+        $pedido = Pedido::with('itens')->findOrFail($id);
 
-        try {
-            $pedido = Pedido::with('itens')->findOrFail($id);
-
-            // Devolvendo ao estoque os produtos do pedido
-            foreach ($pedido->itens as $item) {
-                $equipamento = Equipamento::find($item->equipamento_id);
-                if ($equipamento) {
-                    $equipamento->quantidade += $item->quantidade;
-                    $equipamento->save();
-                }
-            }
-
-            // Removendo os itens do pedido
-            PedidoProduto::where('pedido_id', $pedido->id)->delete();
-            $pedido->delete();
-
-            DB::commit();
-            return redirect()->route('pedidos.index')->with('success', 'Pedido excluído com sucesso!');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()->route('pedidos.index')->with('error', 'Erro ao excluir pedido: ' . $e->getMessage());
+        // libera estoque de cada item (se estiver reservado)
+        foreach ($pedido->itens as $item) {
+            // se estiver em_locacao, você pode decidir devolver() ou impedir exclusão
+            $item->cancelar();
         }
+
+        PedidoProduto::where('pedido_id', $pedido->id)->delete();
+        $pedido->delete();
+
+        DB::commit();
+        return redirect()->route('pedidos.index')->with('success', 'Pedido excluído com sucesso!');
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return redirect()->route('pedidos.index')->with('error', 'Erro ao excluir pedido: ' . $e->getMessage());
     }
+}
+
 }

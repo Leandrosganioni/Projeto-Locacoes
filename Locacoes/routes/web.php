@@ -7,6 +7,7 @@ use App\Http\Controllers\FuncionarioController;
 use App\Http\Controllers\EquipamentoController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\PedidoController;
+use App\Http\Controllers\PedidoItemController; 
 
 Route::get('/', [AuthController::class, 'showFormLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
@@ -25,6 +26,13 @@ Route::middleware("auth")->group(function () {
     Route::resource('pedidos', PedidoController::class);
     Route::resource('usuarios', UsuarioController::class);
 
+    //ações sobre itens de pedido (reservar/retirar/devolver/cancelar)
+    Route::prefix('pedidos/itens')->name('pedidos.itens.')->group(function () {
+        Route::post('{item}/reservar', [PedidoItemController::class, 'reservar'])->name('reservar');
+        Route::post('{item}/retirar',  [PedidoItemController::class, 'retirar'])->name('retirar');
+        Route::post('{item}/devolver', [PedidoItemController::class, 'devolver'])->name('devolver');
+        Route::post('{item}/cancelar', [PedidoItemController::class, 'cancelar'])->name('cancelar');
+    });
+
     Route::post("/logout", [AuthController::class, "logout"])->name('logout');
 });
-
