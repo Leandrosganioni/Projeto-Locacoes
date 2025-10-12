@@ -104,6 +104,79 @@ class PedidoController extends Controller
         ]);
     }
 
+    /**
+     * Exibe os detalhes de um pedido, incluindo seus itens e informações relacionadas.
+     * Esta página serve como a visualização completa do pedido, permitindo ver
+     * cliente, funcionário e itens com botões de ações (reservar, retirar, devolver, cancelar).
+     *
+     * @param  int  $id
+     * @return \Illuminate\View\View
+     */
+    public function show($id)
+    {
+        // Carrega o pedido com relações para exibição completa
+        $pedido = Pedido::with(['cliente', 'funcionario', 'itens.equipamento'])->findOrFail($id);
+        return view('pedidos.show', compact('pedido'));
+    }
+
+    /**
+     * Mostra a evolução diária (decorridos) dos itens de um pedido.
+     * Para cada item, gera uma série de dados dia-a-dia contendo a parcela calculada
+     * e o acumulado. Também gera uma série agregada somando todos os itens por data.
+     *
+     * @param  \App\Models\Pedido  $pedido
+     * @return \Illuminate\Contracts\View\View
+     */
+    public function decorridos(Pedido $pedido)
+    {
+        $pedido->load('itens.equipamento');
+        $series = [];
+        foreach ($pedido->itens as $item) {
+            // gera série por item utilizando a lógica da model
+            $series[$item->id] = $item->breakdownDecorrido();
+        }
+        // Série agregada: soma os valores por data
+        $agregado = $this->agruparSeries($series);
+        return view('pedidos.decorridos', compact('pedido', 'series', 'agregado'));
+    }
+
+    /**
+     * Agrupa várias séries de itens em uma única série agregada por data.
+     * Cada item da entrada deve ser um array indexado por item contendo arrays com
+     * chaves 'data' e 'parcela'. O retorno é um array onde cada elemento possui
+     * a data e a soma das parcelas daquela data, além do acumulado progressivo.
+     *
+     * @param  array $series
+     * @return array
+     */
+    protected function agruparSeries(array $series): array
+    {
+        $agrupado = [];
+        // Itera todas as séries e soma por data
+        foreach ($series as $itemId => $dados) {
+            foreach ($dados as $linha) {
+                $data = $linha['data'];
+                if (!isset($agrupado[$data])) {
+                    $agrupado[$data] = 0.0;
+                }
+                $agrupado[$data] += (float)($linha['parcela'] ?? 0);
+            }
+        }
+        // Ordena por data e calcula acumulado
+        ksort($agrupado);
+        $acumulado = 0.0;
+        $resultado = [];
+        foreach ($agrupado as $data => $valor) {
+            $acumulado += $valor;
+            $resultado[] = [
+                'data'      => $data,
+                'total'     => round($valor, 2),
+                'acumulado' => round($acumulado, 2),
+            ];
+        }
+        return $resultado;
+    }
+
     public function update(Request $request, $id)
 {
     $request->validate([

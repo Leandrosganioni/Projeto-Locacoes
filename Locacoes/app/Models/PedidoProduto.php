@@ -139,4 +139,59 @@ class PedidoProduto extends Model
             ],
         ];
     }
+
+    /**
+     * Gera uma série dia-a-dia de valores decorridos para este item.
+     * Se o item estiver devolvido, utiliza a data de devolução; caso contrário,
+     * usa a data atual ou a data fornecida em $ate. A série contém, para cada dia,
+     * as horas cobradas, a parcela proporcional do valor diário e o acumulado até então.
+     *
+     * @param  \DateTimeInterface|null  $ate  Data limite para projeção (somente para itens em andamento)
+     * @return array
+     */
+    public function breakdownDecorrido(?\DateTimeInterface $ate = null): array
+    {
+        // Determina início: se já foi retirada, usa start_at; senão, usa created_at ou agora
+        $start = $this->start_at ?? $this->created_at ?? Carbon::now();
+        // Determina fim conforme status
+        if ($this->status === self::STATUS_DEVOLVIDO) {
+            $end = $this->end_at ?? Carbon::now();
+        } else {
+            $end = $ate ? Carbon::instance($ate) : Carbon::now();
+        }
+        // Garante que end >= start
+        if ($end->lt($start)) {
+            return [];
+        }
+
+        $rateDia = (float)($this->daily_rate_snapshot ?? $this->equipamento?->daily_rate ?? 0);
+        $qtd     = (int)$this->quantidade;
+        $series = [];
+        $acumulado = 0.0;
+        // Itera cada dia inteiro no intervalo [start, end]
+        $current = $start->copy()->startOfDay();
+        $endDay  = $end->copy()->startOfDay();
+        while ($current->lte($endDay)) {
+            $nextDay = $current->copy()->addDay();
+            // Intervalo real dentro deste dia
+            $intervalStart = $current->gt($start) ? $current->copy() : $start->copy();
+            $intervalEnd   = $nextDay->lt($end) ? $nextDay->copy() : $end->copy();
+            // Calcula horas reais naquele dia (em minutos para precisão)
+            $minutes = $intervalEnd->diffInMinutes($intervalStart);
+            $horas   = $minutes / 60.0;
+            $horas   = max(0.0, min($horas, 24.0));
+            // Parcela proporcional ao valor diário
+            $parcela = ($horas / 24.0) * $rateDia * $qtd;
+            $acumulado += $parcela;
+            $series[] = [
+                'data'      => $current->format('Y-m-d'),
+                'horas'     => round($horas, 2),
+                'parcela'   => round($parcela, 2),
+                'regra'     => $this->status === self::STATUS_DEVOLVIDO ? 'consolidado' : 'projecao',
+                'acumulado' => round($acumulado, 2),
+            ];
+            $current->addDay();
+        }
+        return $series;
+    }
 }

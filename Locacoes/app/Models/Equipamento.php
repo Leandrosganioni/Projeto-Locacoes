@@ -25,18 +25,18 @@ class Equipamento extends Model
             ->get();
     }
 
-    // Preços derivados (semana/mês) – regras podem ser ajustadas depois
+    
     public function getWeeklyRateAttribute(): float
     {
-        return round((float)$this->daily_rate * 7 * 0.90, 2); // 10% off
+        return round((float)$this->daily_rate * 7 * 0.90, 2); 
     }
 
     public function getMonthlyRateAttribute(): float
     {
-        return round((float)$this->daily_rate * 30 * 0.80, 2); // 20% off
+        return round((float)$this->daily_rate * 30 * 0.80, 2); 
     }
 
-    // Estoque: reservar / liberar / retirar / devolver
+    
     public function reservar(int $qtd): bool
     {
         if ($qtd < 1) return false;
@@ -58,14 +58,13 @@ class Equipamento extends Model
 
     public function retirar(int $qtd): bool
     {
-        // Se já reservou antes, normalmente nada muda aqui.
-        // Mantemos para futura evolução (ex.: separação física).
+
         return true;
     }
 
     public function devolver(int $qtd): bool
     {
-        // Na devolução, volta para o disponível
+        
         return $this->liberar($qtd);
     }
 

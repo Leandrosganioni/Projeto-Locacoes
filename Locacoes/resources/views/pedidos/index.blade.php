@@ -31,6 +31,9 @@
                     <td>{{ $pedido->local_entrega }}</td>
                     <td class="text-center">
                         <div class="d-flex justify-content-center">
+                            <a href="{{ route('pedidos.show', $pedido->id) }}" class="btn btn-sm btn-outline-info me-1">
+                                <i class="bi bi-eye"></i> Ver
+                            </a>
                             <a href="{{ route('pedidos.edit', $pedido->id) }}" class="btn btn-sm btn-outline-warning me-1">
                                 <i class="bi bi-pencil"></i> Editar
                             </a>

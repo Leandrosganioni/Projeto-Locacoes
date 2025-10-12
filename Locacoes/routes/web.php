@@ -24,6 +24,12 @@ Route::middleware("auth")->group(function () {
     Route::resource('funcionarios', FuncionarioController::class);
     Route::resource('equipamentos', EquipamentoController::class);
     Route::resource('pedidos', PedidoController::class);
+    // Rota para exibir detalhes do pedido com itens e operações individuais
+    // (utiliza o método show do resource controller)
+    Route::get('pedidos/{pedido}', [PedidoController::class, 'show'])->name('pedidos.show');
+
+    // Rota para visualizar a evolução diária de valores dos itens de um pedido
+    Route::get('pedidos/{pedido}/decorridos', [PedidoController::class, 'decorridos'])->name('pedidos.decorridos');
     Route::resource('usuarios', UsuarioController::class);
 
     //ações sobre itens de pedido (reservar/retirar/devolver/cancelar)
