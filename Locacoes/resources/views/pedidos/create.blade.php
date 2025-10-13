@@ -20,7 +20,7 @@
     </div>
     @endif
 
-    <form method="POST" action="{{ route('pedidos.store') }}">
+    <form id="form-pedido" method="POST" action="{{ route('pedidos.store') }}">
         @csrf
 
         <div class="bg-white shadow rounded p-4 mb-5">
@@ -93,8 +93,7 @@
                                 placeholder="Qtd"
                                 min="1"
                                 max="{{ $produto->quantidade_disponivel }}"
-
-                                style="display: none;">
+                                style="display: none;" disabled>
                         </div>
                     </div>
                 </div>
@@ -140,9 +139,11 @@
                 const input = this.closest('.card-body').querySelector('.quantidade-input');
                 if (this.checked) {
                     input.style.display = 'block';
+                    input.disabled = false;
                     if (!input.value || +input.value < 1) input.value = 1;
                 } else {
                     input.style.display = 'none';
+                    input.disabled = true;
                     input.value = '';
                 }
             });
