@@ -193,13 +193,13 @@ class PedidoController extends Controller
     try {
         $pedido = Pedido::with('itens.equipamento')->findOrFail($id);
 
-        // 1) DEVOLVE estoque dos itens atuais de forma consistente
+       
         foreach ($pedido->itens as $item) {
-            // se o item estiver ‘em_locacao’, você pode decidir bloquear update ou devolver()
+            // se o item estiver ‘em_locacao’, pode decidir bloquear update ou devolver()
             $item->cancelar(); // libera a quantidade_disponivel
         }
 
-        // 2) Atualiza dados do pedido
+        // atualiza dados do pedido
         $pedido->update([
             'cliente_id' => $request->cliente_id,
             'funcionario_id' => $request->funcionario_id,
@@ -207,7 +207,7 @@ class PedidoController extends Controller
             'data_entrega' => $request->data_entrega
         ]);
 
-        // 3) Verifica disponibilidade dos novos itens
+
         foreach ($request->produtos as $equipamento_id) {
             $quantidade = (int)($request->quantidades[$equipamento_id] ?? 0);
             $equipamento = Equipamento::find($equipamento_id);
@@ -217,8 +217,7 @@ class PedidoController extends Controller
             }
         }
 
-        // 4) Recria itens e reserva via model
-        // (opcional: limpar registros antigos do banco)
+
         PedidoProduto::where('pedido_id', $pedido->id)->delete();
 
         foreach ($request->produtos as $equipamento_id) {
@@ -256,7 +255,7 @@ class PedidoController extends Controller
 
         // libera estoque de cada item (se estiver reservado)
         foreach ($pedido->itens as $item) {
-            // se estiver em_locacao, você pode decidir devolver() ou impedir exclusão
+            // se estiver em_locacao, pode decidir devolver() ou impedir exclusão
             $item->cancelar();
         }
 
