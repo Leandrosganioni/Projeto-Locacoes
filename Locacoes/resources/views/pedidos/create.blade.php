@@ -7,20 +7,20 @@
     <h2 class="mb-4 text-center fw-bold">Novo Pedido</h2>
 
     @if (session('error'))
-        <div class="alert alert-danger">{{ session('error') }}</div>
+    <div class="alert alert-danger">{{ session('error') }}</div>
     @endif
 
     @if ($errors->any())
-        <div class="alert alert-danger">
-            <ul class="mb-0">
-                @foreach ($errors->all() as $erro)
-                    <li>{{ $erro }}</li>
-                @endforeach
-            </ul>
-        </div>
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+            @foreach ($errors->all() as $erro)
+            <li>{{ $erro }}</li>
+            @endforeach
+        </ul>
+    </div>
     @endif
 
-    <form method="POST" action="{{ route('pedidos.store') }}">
+    <form id="form-pedido" method="POST" action="{{ route('pedidos.store') }}">
         @csrf
 
         <div class="bg-white shadow rounded p-4 mb-5">
@@ -31,7 +31,7 @@
                     <select class="form-select select2" name="cliente_id" required>
                         <option value="" selected disabled>Pesquisar...</option>
                         @foreach($clientes as $cliente)
-                            <option value="{{ $cliente->id }}">{{ $cliente->nome }}</option>
+                        <option value="{{ $cliente->id }}">{{ $cliente->nome }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -41,7 +41,7 @@
                     <select class="form-select select2" name="funcionario_id" required>
                         <option value="" selected disabled>Pesquisar...</option>
                         @foreach($funcionarios as $funcionario)
-                            <option value="{{ $funcionario->id }}">{{ $funcionario->nome }}</option>
+                        <option value="{{ $funcionario->id }}">{{ $funcionario->nome }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -67,32 +67,36 @@
 
             <div class="row">
                 @foreach($produtos as $produto)
-                    <div class="col-md-3 col-sm-6 mb-4 equipamento-card" data-nome="{{ Str::slug($produto->nome) }}">
-                        <div class="card h-100 border-0 shadow-sm rounded">
-                            <img src="{{ asset('images/equipamentos/' . $produto->imagem) }}"
-                                 class="card-img-top rounded-top"
-                                 alt="{{ $produto->nome }}"
-                                 style="height: 170px; object-fit: cover;">
-                            <div class="card-body d-flex flex-column justify-content-between">
-                                <h6 class="fw-bold mb-1">{{ $produto->nome }}</h6>
-                                <small class="text-muted d-block mb-2">Estoque: {{ $produto->quantidade }}</small>
-                                <div class="form-check small mb-1">
-                                    <input class="form-check-input toggle-qtd" type="checkbox"
-                                           value="{{ $produto->id }}"
-                                           name="produtos[]"
-                                           id="produto_{{ $produto->id }}">
-                                    <label class="form-check-label" for="produto_{{ $produto->id }}">Selecionar</label>
-                                </div>
-                                <input type="number"
-                                       name="quantidades[{{ $produto->id }}]"
-                                       class="form-control form-control-sm quantidade-input mt-2"
-                                       placeholder="Qtd"
-                                       min="1"
-                                       max="{{ $produto->quantidade }}"
-                                       style="display: none;">
+                <div class="col-md-3 col-sm-6 mb-4 equipamento-card" data-nome="{{ Str::slug($produto->nome) }}">
+                    <div class="card h-100 border-0 shadow-sm rounded">
+                        <img src="{{ asset('images/equipamentos/' . $produto->imagem) }}"
+                            class="card-img-top rounded-top"
+                            alt="{{ $produto->nome }}"
+                            style="height: 170px; object-fit: cover;">
+                        <div class="card-body d-flex flex-column justify-content-between">
+                            <h6 class="fw-bold mb-1">{{ $produto->nome }}</h6>
+                            <small class="text-muted d-block mb-2">
+                                Disponível: {{ $produto->quantidade_disponivel }}
+                                · Diária: R$ {{ number_format($produto->daily_rate, 2, ',', '.') }}
+                            </small>
+
+                            <div class="form-check small mb-1">
+                                <input class="form-check-input toggle-qtd" type="checkbox"
+                                    value="{{ $produto->id }}"
+                                    name="produtos[]"
+                                    id="produto_{{ $produto->id }}">
+                                <label class="form-check-label" for="produto_{{ $produto->id }}">Selecionar</label>
                             </div>
+                            <input type="number"
+                                name="quantidades[{{ $produto->id }}]"
+                                class="form-control form-control-sm quantidade-input mt-2"
+                                placeholder="Qtd"
+                                min="1"
+                                max="{{ $produto->quantidade_disponivel }}"
+                                style="display: none;" disabled>
                         </div>
                     </div>
+                </div>
                 @endforeach
             </div>
         </div>
@@ -106,23 +110,24 @@
 @endsection
 
 @push('styles')
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <style>
-        .card:hover {
-            transform: translateY(-3px);
-            transition: 0.2s ease-in-out;
-        }
-        .select2-container .select2-selection--single {
-            height: 38px;
-            padding: 6px 12px;
-        }
-    </style>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .card:hover {
+        transform: translateY(-3px);
+        transition: 0.2s ease-in-out;
+    }
+
+    .select2-container .select2-selection--single {
+        height: 38px;
+        padding: 6px 12px;
+    }
+</style>
 @endpush
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
         $('.select2').select2({
             width: '100%',
             placeholder: 'Pesquisar...',
@@ -130,19 +135,56 @@
         });
 
         document.querySelectorAll('.toggle-qtd').forEach(checkbox => {
-            checkbox.addEventListener('change', function () {
+            checkbox.addEventListener('change', function() {
                 const input = this.closest('.card-body').querySelector('.quantidade-input');
-                input.style.display = this.checked ? 'block' : 'none';
+                if (this.checked) {
+                    input.style.display = 'block';
+                    input.disabled = false;
+                    if (!input.value || +input.value < 1) input.value = 1;
+                } else {
+                    input.style.display = 'none';
+                    input.disabled = true;
+                    input.value = '';
+                }
             });
         });
 
-        document.getElementById('busca-equipamento').addEventListener('input', function () {
+
+        document.getElementById('busca-equipamento').addEventListener('input', function() {
             const termo = this.value.toLowerCase().trim().replace(/\s+/g, '-');
             document.querySelectorAll('.equipamento-card').forEach(card => {
                 const nome = card.getAttribute('data-nome');
                 card.style.display = nome.includes(termo) ? '' : 'none';
             });
         });
+
+
+        document.getElementById('form-pedido').addEventListener('submit', function(e) {
+            let ok = true,
+                msg = [];
+            document.querySelectorAll('.equipamento-card').forEach(card => {
+                const chk = card.querySelector('.toggle-qtd');
+                const qty = card.querySelector('.quantidade-input');
+                const max = parseInt(qty?.getAttribute('max') || '0', 10);
+                const nome = card.querySelector('.fw-bold, h6, strong')?.textContent?.trim() || 'Equipamento';
+
+                if (chk && chk.checked) {
+                    const val = parseInt(qty.value || '0', 10);
+                    if (!val || val < 1) {
+                        ok = false;
+                        msg.push(`${nome}: informe a quantidade.`);
+                    } else if (val > max) {
+                        ok = false;
+                        msg.push(`${nome}: acima do disponível (${max}).`);
+                    }
+                }
+            });
+            if (!ok) {
+                e.preventDefault();
+                alert(msg.join('\n'));
+            }
+        });
+
     });
 </script>
 @endpush
