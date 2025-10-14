@@ -3,19 +3,39 @@
 @section('title', 'Detalhes do Cliente')
 
 @section('content')
-<div class="container mt-5">
-    <h1 class="mb-4">Detalhes do Cliente</h1>
-    
-    <div class="card">
-        <div class="card-body">
-            <h5 class="card-title">{{ $cliente->nome }}</h5>
-            <p class="card-text"><strong>CPF:</strong> {{ $cliente->cpf }}</p>
-            <p class="card-text"><strong>Telefone:</strong> {{ $cliente->telefone }}</p>
-            <p class="card-text"><strong>Endereço:</strong> {{ $cliente->endereco }}</p>
-            
-            <a href="{{ route('clientes.edit', $cliente->id) }}" class="btn btn-warning">Editar</a>
-            <a href="{{ route('clientes.index') }}" class="btn btn-secondary">Voltar</a>
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Detalhes do Cliente</h2>
+        <div>
+            <a href="{{ route('clientes.edit', $cliente->id) }}" class="btn btn-outline-warning me-2">
+                <i class="bi bi-pencil"></i> Editar
+            </a>
+            <a href="{{ route('clientes.index') }}" class="btn btn-light">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
         </div>
+    </div>
+
+    <div class="bg-white shadow rounded p-4">
+        <h5 class="fw-semibold mb-3 border-bottom pb-2">Informações do Cliente</h5>
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Nome</dt>
+            <dd class="col-sm-9">{{ $cliente->nome }}</dd>
+
+            <dt class="col-sm-3">CPF</dt>
+            <dd class="col-sm-9">{{ $cliente->cpf }}</dd>
+
+            <dt class="col-sm-3">Telefone</dt>
+            <dd class="col-sm-9">{{ $cliente->telefone }}</dd>
+
+            <dt class="col-sm-3">Endereço</dt>
+            <dd class="col-sm-9">{{ $cliente->endereco }}</dd>
+            {{-- Adicione outros campos se necessário --}}
+        </dl>
     </div>
 </div>
 @endsection
+
+@push('styles')
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+@endpush
