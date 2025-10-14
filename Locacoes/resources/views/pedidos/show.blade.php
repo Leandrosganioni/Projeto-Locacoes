@@ -8,7 +8,7 @@
         <h2 class="mb-0">Detalhes do Pedido</h2>
         <div>
             <a href="{{ route('pedidos.comprovante', $pedido->id) }}" class="btn btn-outline-primary me-2">
-                <i class="bi bi-printer"></i> Comprovante
+                <i class="bi bi-printer"></i> Imprimir
             </a>
             <a href="{{ route('pedidos.decorridos', $pedido->id) }}" class="btn btn-outline-secondary me-2">
                 <i class="bi bi-clock-history"></i> Evolução diária

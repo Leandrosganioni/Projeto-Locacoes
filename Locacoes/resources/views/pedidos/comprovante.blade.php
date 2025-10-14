@@ -33,40 +33,52 @@
         </dl>
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-bordered align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th>Equipamento</th>
-                    <th>Quantidade</th>
-                    <th>Status</th>
-                    <th>Retirada</th>
-                    <th>Devolução</th>
-                    <th>Diária (R$)</th>
-                    <th>Total (R$)</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($pedido->itens as $item)
-                <tr>
-                    <td>{{ $item->equipamento->nome }}</td>
-                    <td>{{ $item->quantidade }}</td>
-                    <td class="text-capitalize">{{ str_replace('_', ' ', $item->status) }}</td>
-                    <td>{{ $item->start_at ? $item->start_at->format('d/m/Y H:i') : '-' }}</td>
-                    <td>{{ $item->end_at ? $item->end_at->format('d/m/Y H:i') : '-' }}</td>
-                    <td>{{ number_format($item->daily_rate_snapshot, 2, ',', '.') }}</td>
-                    <td>
-                        @if($item->status === 'devolvido')
-                            {{ number_format($item->computed_total, 2, ',', '.') }}
-                        @else
-                            -
-                        @endif
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
+    <table class="table table-bordered align-middle print-table w-100">
+        <thead class="table-dark">
+            <tr>
+                <th>Equipamento</th>
+                <th>Qtd.</th>
+                <th>Status</th>
+                <th>Retirada</th>
+                <th>Devolução</th>
+                <th>Diária (R$)</th>
+                <th>Total (R$)</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($pedido->itens as $item)
+            <tr>
+                <td>{{ $item->equipamento->nome }}</td>
+                <td>{{ $item->quantidade }}</td>
+                <td class="text-capitalize">{{ str_replace('_', ' ', $item->status) }}</td>
+                <td>
+                    @if($item->start_at)
+                        <span>{{ $item->start_at->format('d/m/Y') }}</span><br>
+                        <small>{{ $item->start_at->format('H:i') }}</small>
+                    @else
+                        -
+                    @endif
+                </td>
+                <td>
+                    @if($item->end_at)
+                        <span>{{ $item->end_at->format('d/m/Y') }}</span><br>
+                        <small>{{ $item->end_at->format('H:i') }}</small>
+                    @else
+                        -
+                    @endif
+                </td>
+                <td>{{ number_format($item->daily_rate_snapshot, 2, ',', '.') }}</td>
+                <td>
+                    @if($item->status === 'devolvido')
+                        {{ number_format($item->computed_total, 2, ',', '.') }}
+                    @else
+                        -
+                    @endif
+                </td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
     <div class="mt-3">
         @php
             $totalPedido = $pedido->itens->filter(fn($it) => $it->status === App\Models\PedidoProduto::STATUS_DEVOLVIDO)
@@ -82,7 +94,19 @@
 <style>
     @media print {
         .no-print { display: none !important; }
-        body { -webkit-print-color-adjust: exact; }
+        body { 
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+    }
+    /* Ajustes visuais para a tabela na visualização/impresão */
+    .print-table th, .print-table td {
+        font-size: 0.85rem;
+        vertical-align: top;
+    }
+    .print-table th {
+        background-color: #2b2a2aff !important;
+        
     }
 </style>
 @endpush
