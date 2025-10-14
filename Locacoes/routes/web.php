@@ -30,6 +30,9 @@ Route::middleware("auth")->group(function () {
 
     Route::get('pedidos/{pedido}/decorridos', [PedidoController::class, 'decorridos'])->name('pedidos.decorridos');
 
+    // Rota para servir dados JSON do gráfico de evolução do pedido
+    Route::get('pedidos/{pedido}/grafico', [PedidoController::class, 'grafico'])->name('pedidos.grafico');
+
 
     Route::get('pedidos/{pedido}/comprovante', [PedidoController::class, 'comprovante'])->name('pedidos.comprovante');
     Route::resource('usuarios', UsuarioController::class);

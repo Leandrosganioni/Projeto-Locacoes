@@ -315,4 +315,50 @@ class PedidoController extends Controller
         return view('pedidos.comprovante', compact('pedido'));
     }
 
+    /**
+     * Retorna dados em JSON para o gráfico de evolução do valor do pedido.
+     * Para cada item, gera a série diária utilizando breakdownDecorrido() e
+     * agrupa todas em uma série agregada. Também coleta eventos de adição
+     * (retirada) e finalização (devolução) de cada equipamento para marcar no gráfico.
+     *
+     * @param  \App\Models\Pedido  $pedido
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function grafico(Pedido $pedido)
+    {
+        // Carrega itens com equipamentos para acessar nome e datas
+        $pedido->load('itens.equipamento');
+
+        // Série por item: cada item retorna seu breakdown diário
+        $seriesPorItem = [];
+        foreach ($pedido->itens as $item) {
+            $seriesPorItem[$item->id] = $item->breakdownDecorrido();
+        }
+        // Série agregada somando valores por data
+        $agregado = $this->agruparSeries($seriesPorItem);
+
+        // Coleta eventos de adição (retirada) e finalização (devolução)
+        $events = [];
+        foreach ($pedido->itens as $item) {
+            if ($item->start_at) {
+                $events[] = [
+                    'data'        => $item->start_at->copy()->startOfDay()->format('Y-m-d'),
+                    'tipo'        => 'Adição',
+                    'equipamento' => $item->equipamento->nome,
+                ];
+            }
+            if ($item->end_at) {
+                $events[] = [
+                    'data'        => $item->end_at->copy()->startOfDay()->format('Y-m-d'),
+                    'tipo'        => 'Finalização',
+                    'equipamento' => $item->equipamento->nome,
+                ];
+            }
+        }
+
+        return response()->json([
+            'series' => $agregado,
+            'events' => $events,
+        ]);
+    }
 }
