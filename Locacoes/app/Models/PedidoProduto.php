@@ -192,6 +192,77 @@ class PedidoProduto extends Model
             ];
             $current->addDay();
         }
+        // Se item devolvido, ajusta a distribuição utilizando o valor final (melhor preço) se disponível
+        if ($this->status === self::STATUS_DEVOLVIDO && $this->computed_total !== null) {
+            $finalTotal = (float) $this->computed_total;
+            // Calcula total de horas percorridas
+            $totalHours = 0.0;
+            foreach ($series as $linha) {
+                $totalHours += (float)($linha['horas'] ?? 0);
+            }
+            // Ajusta parcelas proporcionalmente às horas de cada dia
+            if ($totalHours > 0.0) {
+                $acumuladoTmp = 0.0;
+                foreach ($series as $idx => $linha) {
+                    $alloc = ($linha['horas'] / $totalHours) * $finalTotal;
+                    $series[$idx]['parcela'] = round($alloc, 2);
+                    $acumuladoTmp += $alloc;
+                    $series[$idx]['acumulado'] = round($acumuladoTmp, 2);
+                    // Garante que a regra seja "consolidado" para itens devolvidos
+                    $series[$idx]['regra'] = 'consolidado';
+                }
+                // Ajusta eventual diferença de arredondamento no último dia
+                $diff = round($finalTotal - $acumuladoTmp, 2);
+                if (abs($diff) > 0.01) {
+                    $lastIndex = count($series) - 1;
+                    $series[$lastIndex]['parcela'] = round($series[$lastIndex]['parcela'] + $diff, 2);
+                    $series[$lastIndex]['acumulado'] = round($finalTotal, 2);
+                }
+            } else {
+                // Se nenhum horário calculado, atribui todo o total ao último dia
+                $lastIndex = count($series) - 1;
+                if ($lastIndex >= 0) {
+                    $series[$lastIndex]['parcela'] = round($finalTotal, 2);
+                    $series[$lastIndex]['acumulado'] = round($finalTotal, 2);
+                    $series[$lastIndex]['regra'] = 'consolidado';
+                }
+            }
+        }
         return $series;
+    }
+
+    /**
+     * Altera a quantidade de um item reservado, ajustando o estoque do equipamento de acordo.
+     * Somente é permitido alterar itens com status 'reservado'.
+     *
+     * @param  int $novaQuantidade
+     * @return bool
+     */
+    public function alterarQuantidade(int $novaQuantidade): bool
+    {
+        // só é permitido alterar quando está reservado
+        if ($this->status !== self::STATUS_RESERVADO) {
+            return false;
+        }
+        $novaQuantidade = (int)$novaQuantidade;
+        $dif = $novaQuantidade - (int)$this->quantidade;
+        if ($dif === 0) {
+            return true;
+        }
+        $equipamento = $this->equipamento;
+        if (!$equipamento) {
+            return false;
+        }
+        // se aumentar a quantidade, tentar reservar o adicional
+        if ($dif > 0) {
+            if (!$equipamento->reservar($dif)) {
+                return false;
+            }
+        } else {
+            // se reduzir, liberar o estoque excedente
+            $equipamento->liberar(-$dif);
+        }
+        $this->quantidade = $novaQuantidade;
+        return $this->save();
     }
 }

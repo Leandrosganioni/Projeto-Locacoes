@@ -5,63 +5,65 @@
 @section('content')
 
 
-<div class="container mt-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="mb-0">Lista de Clientes</h1>
-        <a href="{{ route('clientes.create') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle me-1"></i> Novo Cliente
-        </a>
-    </div>
+<div class="container py-5">
+    <div class="bg-white shadow rounded p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0 fw-semibold">Lista de Clientes</h2>
+            <a href="{{ route('clientes.create') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i> Novo Cliente
+            </a>
+        </div>
 
-    @if(session('success'))
-    <div class="alert alert-success">
-        {{ session('success') }}
-    </div>
-    @endif
+        @if(session('success'))
+        <div class="alert alert-success">
+            {{ session('success') }}
+        </div>
+        @endif
 
-    <div class="table-responsive">
-        <table id="clientes-table" class="table table-striped table-hover align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th>Nome</th>
-                    <th>CPF</th>
-                    <th>Telefone</th>
-                    <th class="text-center">Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($clientes as $cliente)
-                <tr>
-                    <td>{{ $cliente->nome }}</td>
-                    <td>{{ $cliente->cpf }}</td>
-                    <td>{{ $cliente->telefone }}</td>
-                    <td class="text-center">
-                        <a href="{{ route('clientes.show', $cliente->id) }}" class="btn btn-sm btn-outline-info me-1">
-                            <i class="bi bi-eye"></i>
-                        </a>
-                        <a href="{{ route('clientes.edit', $cliente->id) }}" class="btn btn-sm btn-outline-warning me-1">
-                            <i class="bi bi-pencil"></i>
-                        </a>
-                        <form action="{{ route('clientes.destroy', $cliente->id) }}" method="POST" class="d-inline">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-sm btn-outline-danger"
-                                onclick="return confirm('Tem certeza que deseja excluir este cliente?')">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                @empty
-                <tr>
-                    <td class="text-center">-</td>
-                    <td class="text-center">-</td>
-                    <td class="text-center">-</td>
-                    <td class="text-center">-</td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table id="clientes-table" class="table table-striped table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Nome</th>
+                        <th>CPF</th>
+                        <th>Telefone</th>
+                        <th class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($clientes as $cliente)
+                    <tr>
+                        <td>{{ $cliente->nome }}</td>
+                        <td>{{ $cliente->cpf }}</td>
+                        <td>{{ $cliente->telefone }}</td>
+                        <td class="text-center">
+                            <a href="{{ route('clientes.show', $cliente->id) }}" class="btn btn-sm btn-outline-info me-1">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{{ route('clientes.edit', $cliente->id) }}" class="btn btn-sm btn-outline-warning me-1">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form action="{{ route('clientes.destroy', $cliente->id) }}" method="POST" class="d-inline">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                    onclick="return confirm('Tem certeza que deseja excluir este cliente?')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 @endsection

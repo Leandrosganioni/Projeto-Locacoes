@@ -7,6 +7,9 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">Detalhes do Pedido</h2>
         <div>
+            <a href="{{ route('pedidos.comprovante', $pedido->id) }}" class="btn btn-outline-primary me-2">
+                <i class="bi bi-printer"></i> Imprimir
+            </a>
             <a href="{{ route('pedidos.decorridos', $pedido->id) }}" class="btn btn-outline-secondary me-2">
                 <i class="bi bi-clock-history"></i> Evolução diária
             </a>
@@ -113,9 +116,22 @@
         @endphp
         <h5 class="fw-semibold">Total (itens devolvidos): R$ {{ number_format($totalPedido, 2, ',', '.') }}</h5>
     </div>
+
+    {{-- Gráfico de evolução do valor do pedido --}}
+    <div class="mt-5">
+        <h5 class="fw-semibold mb-3">Evolução do valor do pedido</h5>
+        <div style="position: relative; height: 400px;">
+            <canvas id="graficoPedido" data-url="{{ route('pedidos.grafico', $pedido->id) }}"></canvas>
+        </div>
+    </div>
 </div>
 @endsection
 
 @push('styles')
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+@endpush
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{{ asset('js/pedido_grafico.js') }}"></script>
 @endpush
