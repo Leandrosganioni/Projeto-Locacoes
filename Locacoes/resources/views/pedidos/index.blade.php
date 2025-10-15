@@ -54,7 +54,11 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="text-center">Nenhum pedido encontrado.</td>
+                        <td class="text-center">-</td>
+                        <td class="text-center"></td>
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
                     </tr>
                     @endforelse
                 </tbody>

@@ -13,10 +13,10 @@
         </div>
 
         @if(session('success'))
-            <div class="alert alert-success">{{ session('success') }}</div>
+        <div class="alert alert-success">{{ session('success') }}</div>
         @endif
         @if(session('error'))
-            <div class="alert alert-danger">{{ session('error') }}</div>
+        <div class="alert alert-danger">{{ session('error') }}</div>
         @endif
 
         <div class="table-responsive">
@@ -36,9 +36,9 @@
                     <tr>
                         <td>
                             @if($equipamento->imagem && file_exists(public_path('images/equipamentos/' . $equipamento->imagem)))
-                                <img src="{{ asset('images/equipamentos/' . $equipamento->imagem) }}" alt="{{ $equipamento->nome }}" class="img-thumbnail equipamento-imagem">
+                            <img src="{{ asset('images/equipamentos/' . $equipamento->imagem) }}" alt="{{ $equipamento->nome }}" class="img-thumbnail equipamento-imagem">
                             @else
-                                <span class="text-muted">—</span>
+                            <span class="text-muted">—</span>
                             @endif
                         </td>
                         <td>{{ $equipamento->nome }}</td>
@@ -63,7 +63,12 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="text-center">Nenhum equipamento encontrado.</td>
+                        <td class="text-center">-</td>
+                        <td class="text-center"></td>
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -83,6 +88,7 @@
         width: auto;
         transition: transform 0.2s ease-in-out;
     }
+
     .equipamento-imagem:hover {
         transform: scale(1.5);
         z-index: 10;
@@ -110,14 +116,33 @@
                 url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'
             },
             dom: "<'row mb-3'<'col-sm-6'l><'col-sm-6 text-end'B>>" +
-                 "<'row'<'col-sm-12'tr>>" +
-                 "<'row mt-3'<'col-sm-5'i><'col-sm-7'p>>",
-            buttons: [
-                { extend: 'copyHtml5', className: 'btn btn-sm btn-secondary', text: '<i class="bi bi-clipboard"></i> Copiar' },
-                { extend: 'csvHtml5', className: 'btn btn-sm btn-success', text: '<i class="bi bi-filetype-csv"></i> CSV' },
-                { extend: 'excelHtml5', className: 'btn btn-sm btn-success', text: '<i class="bi bi-file-earmark-excel"></i> Excel' },
-                { extend: 'pdfHtml5', className: 'btn btn-sm btn-danger', text: '<i class="bi bi-file-earmark-pdf"></i> PDF' },
-                { extend: 'print', className: 'btn btn-sm btn-primary', text: '<i class="bi bi-printer"></i> Imprimir' }
+                "<'row'<'col-sm-12'tr>>" +
+                "<'row mt-3'<'col-sm-5'i><'col-sm-7'p>>",
+            buttons: [{
+                    extend: 'copyHtml5',
+                    className: 'btn btn-sm btn-secondary',
+                    text: '<i class="bi bi-clipboard"></i> Copiar'
+                },
+                {
+                    extend: 'csvHtml5',
+                    className: 'btn btn-sm btn-success',
+                    text: '<i class="bi bi-filetype-csv"></i> CSV'
+                },
+                {
+                    extend: 'excelHtml5',
+                    className: 'btn btn-sm btn-success',
+                    text: '<i class="bi bi-file-earmark-excel"></i> Excel'
+                },
+                {
+                    extend: 'pdfHtml5',
+                    className: 'btn btn-sm btn-danger',
+                    text: '<i class="bi bi-file-earmark-pdf"></i> PDF'
+                },
+                {
+                    extend: 'print',
+                    className: 'btn btn-sm btn-primary',
+                    text: '<i class="bi bi-printer"></i> Imprimir'
+                }
             ]
         });
     });
