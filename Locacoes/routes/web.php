@@ -8,12 +8,14 @@ use App\Http\Controllers\EquipamentoController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\PedidoController;
 use App\Http\Controllers\PedidoItemController; 
+use App\Http\Controllers\QuebraController;
 
 Route::get('/', [AuthController::class, 'showFormLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::get('/register', [AuthController::class, 'showFormRegister'])->name('register');
 Route::post('/create-user', [AuthController::class, 'create'])->name('createUser');
+
 
 Route::middleware("auth")->group(function () {
     Route::get('/index', function () {
@@ -39,6 +41,12 @@ Route::middleware("auth")->group(function () {
         Route::post('{item}/devolver', [PedidoItemController::class, 'devolver'])->name('devolver');
         Route::post('{item}/cancelar', [PedidoItemController::class, 'cancelar'])->name('cancelar');
     });
+
+    // --- ROTAS DE QUEBRA E DEVOLUÇÃO ---
+    Route::get('/quebras', [QuebraController::class, 'index'])->name('quebras.index');
+    Route::get('/quebras/registrar/{pedido_id}', [QuebraController::class, 'create'])->name('quebras.create');
+    Route::post('/quebras', [QuebraController::class, 'store'])->name('quebras.store');
+    //FIM
 
     Route::post("/logout", [AuthController::class, "logout"])->name('logout');
 });

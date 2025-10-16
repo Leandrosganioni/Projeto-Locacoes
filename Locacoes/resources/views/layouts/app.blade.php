@@ -43,6 +43,13 @@
                             <i class="bi bi-box"></i> Pedidos
                         </a>
                     </li>
+                    {{-- NOVO LINK ADICIONADO AQUI --}}
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center gap-1 {{ request()->routeIs('quebras.*') ? 'active text-primary fw-semibold' : '' }}" href="{{ route('quebras.index') }}">
+                            <i class="bi bi-wrench-adjustable"></i> Reg. Quebra
+                        </a>
+                    </li>
+                    {{-- FIM DO NOVO LINK --}}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('register') }}">Cadastrar Usuário</a>
                     </li>
