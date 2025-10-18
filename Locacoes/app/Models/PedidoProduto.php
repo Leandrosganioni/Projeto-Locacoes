@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class PedidoProduto extends Model
 {
@@ -106,35 +107,70 @@ class PedidoProduto extends Model
     // Regra: melhor preço entre diária/semana/mês, com carência de 2h e mínimo 1 diária
     protected function calcularValor(): array
     {
+        Log::debug('--- INICIANDO calcularValor() [VERSÃO CORRIGIDA COM LOGS V2] ---');
+
         $start = Carbon::parse($this->start_at);
         $end   = Carbon::parse($this->end_at);
 
+        Log::debug('start_at (Parsed): ' . $start->toIso8601String());
+        Log::debug('end_at (Parsed): ' . $end->toIso8601String());
+
         // Carência de 2h
         $duracaoMin = $start->copy()->addHours(2);
+        Log::debug('Verificando Carência ($end <= $duracaoMin): ' . ($end->lessThanOrEqualTo($duracaoMin) ? 'VERDADEIRO' : 'FALSO'));
+
         if ($end->lessThanOrEqualTo($duracaoMin)) {
             $diasCobrados = 1;
         } else {
-            $diffHoras    = $end->diffInHours($start);
+
+            
+            $diffHoras    = $end->floatDiffInHours($start);
+            Log::debug('diffHoras (Valor Bruto): ' . $diffHoras);
+
+            
+            $diffHoras    = abs($diffHoras);
+
+            Log::debug('diffHoras (Depois do abs()): ' . $diffHoras);
+            
+
             $diasCobrados = (int) ceil($diffHoras / 24);
+            Log::debug('Dias (ceil(diff/24)): ' . $diasCobrados);
+
             $diasCobrados = max(1, $diasCobrados);
         }
+
+        Log::debug('DIAS COBRADOS (Final): ' . $diasCobrados);
 
         $rateDia = (float)($this->daily_rate_snapshot ?? $this->equipamento?->daily_rate ?? 0);
         $rateSem = (float)($this->equipamento?->weekly_rate ?? ($rateDia * 7 * 0.90));
         $rateMes = (float)($this->equipamento?->monthly_rate ?? ($rateDia * 30 * 0.80));
 
+        Log::debug('Rate Dia: ' . $rateDia);
+
         // Combinação “best price”
         $resto   = $diasCobrados;
-        $meses   = intdiv($resto, 30); $resto   -= $meses * 30;
-        $semanas = intdiv($resto, 7);  $resto   -= $semanas * 7;
+        $meses   = intdiv($resto, 30);
+        $resto   -= $meses * 30;
+        $semanas = intdiv($resto, 7);
+        $resto   -= $semanas * 7;
         $totalBest = $meses * $rateMes + $semanas * $rateSem + $resto * $rateDia;
 
+        Log::debug('Total Best (Antes Qtd): ' . $totalBest);
+
+        $totalFinal = round($totalBest * (int)$this->quantidade, 2);
+        Log::debug('TOTAL FINAL: ' . $totalFinal);
+        Log::debug('--- FIM calcularValor() [VERSÃO CORRIGIDA COM LOGS V2] ---');
+
         return [
-            'total'   => round($totalBest * (int)$this->quantidade, 2),
+            'total'   => $totalFinal,
             'detalhe' => [
                 'dias_cobrados' => $diasCobrados,
-                'meses' => $meses, 'semanas' => $semanas, 'dias' => $resto,
-                'rate_dia' => $rateDia, 'rate_semana' => $rateSem, 'rate_mes' => $rateMes,
+                'meses' => $meses,
+                'semanas' => $semanas,
+                'dias' => $resto,
+                'rate_dia' => $rateDia,
+                'rate_semana' => $rateSem,
+                'rate_mes' => $rateMes,
                 'qtd' => (int)$this->quantidade,
             ],
         ];
@@ -149,17 +185,18 @@ class PedidoProduto extends Model
      * @param  \DateTimeInterface|null  $ate  Data limite para projeção (somente para itens em andamento)
      * @return array
      */
+
     public function breakdownDecorrido(?\DateTimeInterface $ate = null): array
     {
-        // Determina início: se já foi retirada, usa start_at; senão, usa created_at ou agora
+        // Determina início
         $start = $this->start_at ?? $this->created_at ?? Carbon::now();
-        // Determina fim conforme status
+        
         if ($this->status === self::STATUS_DEVOLVIDO) {
             $end = $this->end_at ?? Carbon::now();
         } else {
             $end = $ate ? Carbon::instance($ate) : Carbon::now();
         }
-        // Garante que end >= start
+
         if ($end->lt($start)) {
             return [];
         }
@@ -168,18 +205,29 @@ class PedidoProduto extends Model
         $qtd     = (int)$this->quantidade;
         $series = [];
         $acumulado = 0.0;
-        // Itera cada dia inteiro no intervalo [start, end]
+
         $current = $start->copy()->startOfDay();
         $endDay  = $end->copy()->startOfDay();
+
         while ($current->lte($endDay)) {
             $nextDay = $current->copy()->addDay();
-            // Intervalo real dentro deste dia
-            $intervalStart = $current->gt($start) ? $current->copy() : $start->copy();
-            $intervalEnd   = $nextDay->lt($end) ? $nextDay->copy() : $end->copy();
-            // Calcula horas reais naquele dia (em minutos para precisão)
-            $minutes = $intervalEnd->diffInMinutes($intervalStart);
+
+            
+            $intervalStart = $current->max($start);
+            $intervalEnd   = $nextDay->min($end);
+
+            $minutes = 0;
+            if ($intervalEnd->gt($intervalStart)) {
+                
+                
+                
+                $minutes = abs($intervalEnd->diffInMinutes($intervalStart));
+                
+            }
+
             $horas   = $minutes / 60.0;
-            $horas   = max(0.0, min($horas, 24.0));
+            $horas   = max(0.0, min($horas, 24.0)); 
+
             // Parcela proporcional ao valor diário
             $parcela = ($horas / 24.0) * $rateDia * $qtd;
             $acumulado += $parcela;
@@ -187,19 +235,21 @@ class PedidoProduto extends Model
                 'data'      => $current->format('Y-m-d'),
                 'horas'     => round($horas, 2),
                 'parcela'   => round($parcela, 2),
-                'regra'     => $this->status === self::STATUS_DEVOLVIDO ? 'consolidado' : 'projecao',
+                'regra'     => $this->status === self::STATUS_DEVOLVIDO ? 'projecao' : 'projecao', // Regra inicial
                 'acumulado' => round($acumulado, 2),
             ];
             $current->addDay();
         }
-        // Se item devolvido, ajusta a distribuição utilizando o valor final (melhor preço) se disponível
+
+        // Se item devolvido, ajusta a distribuição utilizando o valor final
         if ($this->status === self::STATUS_DEVOLVIDO && $this->computed_total !== null) {
             $finalTotal = (float) $this->computed_total;
-            // Calcula total de horas percorridas
+
             $totalHours = 0.0;
             foreach ($series as $linha) {
                 $totalHours += (float)($linha['horas'] ?? 0);
             }
+
             // Ajusta parcelas proporcionalmente às horas de cada dia
             if ($totalHours > 0.0) {
                 $acumuladoTmp = 0.0;
@@ -208,18 +258,17 @@ class PedidoProduto extends Model
                     $series[$idx]['parcela'] = round($alloc, 2);
                     $acumuladoTmp += $alloc;
                     $series[$idx]['acumulado'] = round($acumuladoTmp, 2);
-                    // Garante que a regra seja "consolidado" para itens devolvidos
-                    $series[$idx]['regra'] = 'consolidado';
+                    $series[$idx]['regra'] = 'consolidado'; // Define como consolidado
                 }
                 // Ajusta eventual diferença de arredondamento no último dia
                 $diff = round($finalTotal - $acumuladoTmp, 2);
-                if (abs($diff) > 0.01) {
+                if (abs($diff) > 0.01 && count($series) > 0) {
                     $lastIndex = count($series) - 1;
                     $series[$lastIndex]['parcela'] = round($series[$lastIndex]['parcela'] + $diff, 2);
                     $series[$lastIndex]['acumulado'] = round($finalTotal, 2);
                 }
             } else {
-                // Se nenhum horário calculado, atribui todo o total ao último dia
+                // (Este 'else' não deve mais ser atingido, mas fica como segurança)
                 $lastIndex = count($series) - 1;
                 if ($lastIndex >= 0) {
                     $series[$lastIndex]['parcela'] = round($finalTotal, 2);
@@ -265,4 +314,8 @@ class PedidoProduto extends Model
         $this->quantidade = $novaQuantidade;
         return $this->save();
     }
+
 }
+
+
+  
