@@ -3,38 +3,70 @@
 @section('title', 'Registro de Quebras e Devoluções')
 
 @section('content')
-<div class="container">
-    <div class="card shadow-lg p-4">
-        <h1 class="card-title text-center text-primary mb-4">
-            <i class="bi bi-search"></i> Buscar Pedido para Ocorrência
-        </h1>
-        <p class="text-center text-muted">Digite o número do Pedido (ID) para registrar uma quebra ou devolução.</p>
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">Registrar Ocorrência</h1>
+    </div>
 
-        <form action="{{ route('quebras.create', ['pedido_id' => '__ID__']) }}" method="GET" id="search-form">
-            <div class="input-group mb-3">
-                <input type="number" id="pedido_id_input" class="form-control form-control-lg" placeholder="Número do Pedido (Ex: 103)" aria-label="Número do Pedido" required min="1">
-                <button class="btn btn-primary btn-lg" type="submit">
-                    <i class="bi bi-arrow-right-circle"></i> Continuar
-                </button>
+    <div class="table-responsive">
+        <div class="card shadow-sm">
+            <div class="card-header table-dark">
+                <h5 class="mb-0 text-white">Buscar Pedido</h5>
             </div>
-        </form>
+            <div class="card-body p-4">
+                <h1 class="card-title text-center text-primary mb-4">
+                    <i class="bi bi-search"></i> Buscar Pedido para Ocorrência
+                </h1>
+                <p class="text-center text-muted">Digite o número do Pedido (ID) para registrar uma quebra ou devolução.</p>
+        
+                {{-- --- CORREÇÃO AQUI (Parte 1) --- --}}
+                {{-- 
+                    Passamos a URL para um atributo 'data-url-template'.
+                    O HTML não se importa com a sintaxe do Blade dentro das aspas.
+                --}}
+                <form action="{{ route('quebras.create', ['pedido_id' => '__ID__']) }}" 
+                      method="GET" 
+                      id="search-form"
+                      data-url-template="{{ route('quebras.create', ['pedido_id' => '__ID__']) }}">
+                
+                    <div class="input-group mb-3">
+                        <input type="number" id="pedido_id_input" class="form-control form-control-lg" placeholder="Número do Pedido (Ex: 1)" aria-label="Número do Pedido" required min="1">
+                        <button class="btn btn-primary btn-lg" type="submit">
+                            <i class="bi bi-arrow-right-circle"></i> Continuar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
+@endsection
 
+@push('styles')
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+@endpush
+
+@push('scripts')
 <script>
     document.getElementById('search-form').addEventListener('submit', function(e) {
         e.preventDefault();
         
+        // --- CORREÇÃO AQUI (Parte 2) ---
+        // 1. Pegamos o próprio formulário
+        const form = e.target; 
+        
+        // 2. Pegamos o input
         const input = document.getElementById('pedido_id_input');
         const pedidoId = input.value;
         
         if (pedidoId) {
-            // Constrói a URL dinamicamente e redireciona
-            const urlTemplate = '{{ route('quebras.create', ['pedido_id' => '__ID__']) }}';
+            // 3. Lemos a URL direto do atributo 'data-url-template' do formulário
+            const urlTemplate = form.dataset.urlTemplate;
+
+            // 4. O resto do seu código funciona perfeitamente
             const finalUrl = urlTemplate.replace('__ID__', pedidoId);
             window.location.href = finalUrl;
         }
     });
 </script>
-@endsection
-```
+@endpush
