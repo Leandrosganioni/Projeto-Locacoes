@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Log; 
 
 class PedidoProduto extends Model
 {
@@ -58,7 +58,7 @@ class PedidoProduto extends Model
         return $this->save();
     }
 
-    // Inicia a locação (retirada)
+    //iniciar a locação (retirada)
     public function retirar(): bool
     {
         if ($this->status !== self::STATUS_RESERVADO) return false;
@@ -90,7 +90,7 @@ class PedidoProduto extends Model
         return $this->save();
     }
 
-    // Cancela reserva antes de retirar
+    //cancelar reserva antes de retirar
     public function cancelar(): bool
     {
         if ($this->status !== self::STATUS_RESERVADO) return false;
@@ -104,62 +104,36 @@ class PedidoProduto extends Model
         return $ok;
     }
 
-    // Regra: melhor preço entre diária/semana/mês, com carência de 2h e mínimo 1 diária
+    // rule: melhor preço entre diária/semana/mês, com carência de 2h e mínimo 1 diária
     protected function calcularValor(): array
     {
-        Log::debug('--- INICIANDO calcularValor() [VERSÃO CORRIGIDA COM LOGS V2] ---');
-
         $start = Carbon::parse($this->start_at);
         $end   = Carbon::parse($this->end_at);
 
-        Log::debug('start_at (Parsed): ' . $start->toIso8601String());
-        Log::debug('end_at (Parsed): ' . $end->toIso8601String());
-
         // Carência de 2h
         $duracaoMin = $start->copy()->addHours(2);
-        Log::debug('Verificando Carência ($end <= $duracaoMin): ' . ($end->lessThanOrEqualTo($duracaoMin) ? 'VERDADEIRO' : 'FALSO'));
 
         if ($end->lessThanOrEqualTo($duracaoMin)) {
             $diasCobrados = 1;
         } else {
-
+            // fix: abs() para garantir que a diferença de horas é positiva
+            $diffHoras    = abs($end->floatDiffInHours($start));
             
-            $diffHoras    = $end->floatDiffInHours($start);
-            Log::debug('diffHoras (Valor Bruto): ' . $diffHoras);
-
-            
-            $diffHoras    = abs($diffHoras);
-
-            Log::debug('diffHoras (Depois do abs()): ' . $diffHoras);
-            
-
             $diasCobrados = (int) ceil($diffHoras / 24);
-            Log::debug('Dias (ceil(diff/24)): ' . $diasCobrados);
-
             $diasCobrados = max(1, $diasCobrados);
         }
-
-        Log::debug('DIAS COBRADOS (Final): ' . $diasCobrados);
 
         $rateDia = (float)($this->daily_rate_snapshot ?? $this->equipamento?->daily_rate ?? 0);
         $rateSem = (float)($this->equipamento?->weekly_rate ?? ($rateDia * 7 * 0.90));
         $rateMes = (float)($this->equipamento?->monthly_rate ?? ($rateDia * 30 * 0.80));
 
-        Log::debug('Rate Dia: ' . $rateDia);
-
-        // Combinação “best price”
+        //“best price”
         $resto   = $diasCobrados;
-        $meses   = intdiv($resto, 30);
-        $resto   -= $meses * 30;
-        $semanas = intdiv($resto, 7);
-        $resto   -= $semanas * 7;
+        $meses   = intdiv($resto, 30); $resto   -= $meses * 30;
+        $semanas = intdiv($resto, 7);  $resto   -= $semanas * 7;
         $totalBest = $meses * $rateMes + $semanas * $rateSem + $resto * $rateDia;
 
-        Log::debug('Total Best (Antes Qtd): ' . $totalBest);
-
         $totalFinal = round($totalBest * (int)$this->quantidade, 2);
-        Log::debug('TOTAL FINAL: ' . $totalFinal);
-        Log::debug('--- FIM calcularValor() [VERSÃO CORRIGIDA COM LOGS V2] ---');
 
         return [
             'total'   => $totalFinal,
@@ -178,17 +152,11 @@ class PedidoProduto extends Model
 
     /**
      * Gera uma série dia-a-dia de valores decorridos para este item.
-     * Se o item estiver devolvido, utiliza a data de devolução; caso contrário,
-     * usa a data atual ou a data fornecida em $ate. A série contém, para cada dia,
-     * as horas cobradas, a parcela proporcional do valor diário e o acumulado até então.
-     *
-     * @param  \DateTimeInterface|null  $ate  Data limite para projeção (somente para itens em andamento)
-     * @return array
+     
      */
-
     public function breakdownDecorrido(?\DateTimeInterface $ate = null): array
     {
-        // Determina início
+        
         $start = $this->start_at ?? $this->created_at ?? Carbon::now();
         
         if ($this->status === self::STATUS_DEVOLVIDO) {
@@ -211,7 +179,6 @@ class PedidoProduto extends Model
 
         while ($current->lte($endDay)) {
             $nextDay = $current->copy()->addDay();
-
             
             $intervalStart = $current->max($start);
             $intervalEnd   = $nextDay->min($end);
@@ -219,10 +186,7 @@ class PedidoProduto extends Model
             $minutes = 0;
             if ($intervalEnd->gt($intervalStart)) {
                 
-                
-                
                 $minutes = abs($intervalEnd->diffInMinutes($intervalStart));
-                
             }
 
             $horas   = $minutes / 60.0;
@@ -235,7 +199,7 @@ class PedidoProduto extends Model
                 'data'      => $current->format('Y-m-d'),
                 'horas'     => round($horas, 2),
                 'parcela'   => round($parcela, 2),
-                'regra'     => $this->status === self::STATUS_DEVOLVIDO ? 'projecao' : 'projecao', // Regra inicial
+                'regra'     => $this->status === self::STATUS_DEVOLVIDO ? 'projecao' : 'projecao', 
                 'acumulado' => round($acumulado, 2),
             ];
             $current->addDay();
@@ -281,11 +245,7 @@ class PedidoProduto extends Model
     }
 
     /**
-     * Altera a quantidade de um item reservado, ajustando o estoque do equipamento de acordo.
-     * Somente é permitido alterar itens com status 'reservado'.
-     *
-     * @param  int $novaQuantidade
-     * @return bool
+     * Altera a quantidade de um item reservado...
      */
     public function alterarQuantidade(int $novaQuantidade): bool
     {
@@ -314,8 +274,4 @@ class PedidoProduto extends Model
         $this->quantidade = $novaQuantidade;
         return $this->save();
     }
-
 }
-
-
-  
