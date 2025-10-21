@@ -284,7 +284,7 @@ class PedidoController extends Controller
 
         // libera estoque de cada item (se estiver reservado)
         foreach ($pedido->itens as $item) {
-            // se estiver em_locacao, você pode decidir devolver() ou impedir exclusão
+            // se estiver em_locacao, pode decidir devolver() ou impedir exclusão
             $item->cancelar();
         }
 
