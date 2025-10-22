@@ -11,7 +11,13 @@ use App\Http\Controllers\PedidoItemController;
 use App\Models\Cliente;
 use App\Models\Equipamento;
 use App\Models\Pedido;
-use Illuminate\Support\Facades\Auth; 
+use Illuminate\Support\Facades\Auth;
+
+/*
+|--------------------------------------------------------------------------
+| Rotas Web
+|--------------------------------------------------------------------------
+*/
 
 
 Route::get('/', [AuthController::class, 'showFormLogin'])->name('login');
@@ -27,14 +33,12 @@ Route::middleware("auth")->group(function () {
     Route::get('/index', function () {
         $user = Auth::user();
 
-
         if ($user->role === 'cliente') {
             $equipamentosDisponiveis = Equipamento::where('quantidade_disponivel', '>', 0)
                                                 ->orderBy('nome')
                                                 ->get(['id', 'nome', 'imagem', 'daily_rate']);
             return view('index_cliente', compact('equipamentosDisponiveis'));
         }
-
 
         $totalEquipamentos = Equipamento::count();
         $totalClientes = Cliente::count();
@@ -46,24 +50,20 @@ Route::middleware("auth")->group(function () {
 
     Route::post("/logout", [AuthController::class, "logout"])->name('logout');
 
-    
 
-    Route::middleware('role:cliente,funcionario,admin')->group(function () {
-        Route::get('pedidos', [PedidoController::class, 'index'])->name('pedidos.index');
-        Route::get('pedidos/{pedido}', [PedidoController::class, 'show'])->name('pedidos.show');
-        Route::get('pedidos/{pedido}/decorridos', [PedidoController::class, 'decorridos'])->name('pedidos.decorridos');
-        Route::get('pedidos/{pedido}/grafico', [PedidoController::class, 'grafico'])->name('pedidos.grafico');
-        Route::get('pedidos/{pedido}/comprovante', [PedidoController::class, 'comprovante'])->name('pedidos.comprovante');
-    });
-
-    
 
     Route::middleware('role:funcionario,admin')->group(function () {
+        
+
         Route::resource("clientes", ClienteController::class);
         Route::resource('equipamentos', EquipamentoController::class);
 
 
-        Route::resource('pedidos', PedidoController::class)->except(['index', 'show']); 
+        Route::get('pedidos/create', [PedidoController::class, 'create'])->name('pedidos.create');
+        Route::post('pedidos', [PedidoController::class, 'store'])->name('pedidos.store');
+        Route::get('pedidos/{pedido}/edit', [PedidoController::class, 'edit'])->name('pedidos.edit');
+        Route::match(['put', 'patch'], 'pedidos/{pedido}', [PedidoController::class, 'update'])->name('pedidos.update');
+        Route::delete('pedidos/{pedido}', [PedidoController::class, 'destroy'])->name('pedidos.destroy');
 
 
         Route::prefix('pedidos/itens')->name('pedidos.itens.')->group(function () {
@@ -74,6 +74,16 @@ Route::middleware("auth")->group(function () {
         });
     });
 
+
+    Route::middleware('role:cliente,funcionario,admin')->group(function () {
+        
+
+        Route::get('pedidos', [PedidoController::class, 'index'])->name('pedidos.index');
+        Route::get('pedidos/{pedido}', [PedidoController::class, 'show'])->name('pedidos.show'); 
+        Route::get('pedidos/{pedido}/decorridos', [PedidoController::class, 'decorridos'])->name('pedidos.decorridos');
+        Route::get('pedidos/{pedido}/grafico', [PedidoController::class, 'grafico'])->name('pedidos.grafico');
+        Route::get('pedidos/{pedido}/comprovante', [PedidoController::class, 'comprovante'])->name('pedidos.comprovante');
+    });
     
 
     Route::middleware('role:admin')->group(function () {
