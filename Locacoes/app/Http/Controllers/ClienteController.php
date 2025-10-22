@@ -37,59 +37,47 @@ class ClienteController extends Controller
      */
     public function store(Request $request)
     {
-        
-        //validando os dados vindos do formulário.
-        //adicionar regras para os novos campos:
-        // - email: obrigatório, formato de email, único na tabela 'users'.
-        // - password: obrigatório, mínimo 8 caracteres, confirmado pelo campo 'password_confirmation'.
         $validated = $request->validate([
             'nome' => 'required|string|max:100',
-            'cpf' => ['required', 'string', 'max:14', Rule::unique('clientes')], // CPF único na tabela clientes
+            'cpf_cnpj' => ['required', 'string', 'max:18', Rule::unique('clientes')],
             'telefone' => 'required|string|max:20',
             'endereco' => 'required|string|max:200',
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class)], // Email único na tabela users
-            'password' => ['required', 'confirmed', Rules\Password::defaults()], // Senha confirmada e seguindo padrões
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class)],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-
-        //se a criação do cliente ou do usuário falhar, tudo é desfeito (rollback).
         DB::beginTransaction();
         try {
             // 1. Criar o Cliente
+            // --- INÍCIO DA CORREÇÃO ---
             $cliente = Cliente::create([
                 'nome' => $validated['nome'],
-                'cpf' => $validated['cpf'], 
+                'cpf_cnpj' => $validated['cpf_cnpj'],
                 'telefone' => $validated['telefone'],
                 'endereco' => $validated['endereco'],
-                'email' => $validated['email'], 
+                // 'email' => $validated['email'], // <-- REMOVIDA ESTA LINHA
             ]);
+            // --- FIM DA CORREÇÃO ---
 
-            // 2. Criar o Usuário associado
+            // 2. Criar o Usuário associado (aqui o email está correto)
             $user = User::create([
-                'name' => $validated['nome'], 
-                'email' => $validated['email'],
-                'password' => Hash::make($validated['password']), 
-                'role' => 'cliente', // papel como 'cliente'
-                'cliente_id' => $cliente->id, 
-                'funcionario_id' => null, 
+                'name' => $validated['nome'],
+                'email' => $validated['email'], // O email é salvo aqui
+                'password' => Hash::make($validated['password']),
+                'role' => 'cliente',
+                'cliente_id' => $cliente->id,
+                'funcionario_id' => null,
             ]);
 
-            // Se tudo correu bem, confirma a transação
             DB::commit();
 
             return redirect()->route('clientes.index')
-                             ->with('success', 'Cliente e acesso de utilizador cadastrados com sucesso!');
-
+                ->with('success', 'Cliente e acesso de utilizador cadastrados com sucesso!');
         } catch (\Exception $e) {
-            // Se algo deu errado, desfaz a transação
             DB::rollBack();
 
-            // Logar o erro pode ser útil para debug
-            // Log::error('Erro ao cadastrar cliente/usuário: ' . $e->getMessage());
-
-            return redirect()->back()
-                             ->with('error', 'Erro ao cadastrar o cliente. Tente novamente.')
-                             ->withInput(); // Mantém os dados no formulário
+            // Mostra o erro real para depuração
+            return redirect()->back()->with('error', $e->getMessage())->withInput();
         }
     }
 
@@ -135,7 +123,7 @@ class ClienteController extends Controller
         // ...
 
         return redirect()->route('clientes.index')
-                         ->with('success', 'Cliente atualizado com sucesso!');
+            ->with('success', 'Cliente atualizado com sucesso!');
     }
 
     /**
@@ -158,12 +146,12 @@ class ClienteController extends Controller
 
             DB::commit();
             return redirect()->route('clientes.index')
-                           ->with('success', 'Cliente e utilizador associado excluídos com sucesso!');
+                ->with('success', 'Cliente e utilizador associado excluídos com sucesso!');
         } catch (\Exception $e) {
             DB::rollBack();
             // Log::error('Erro ao excluir cliente/usuário: ' . $e->getMessage());
             return redirect()->route('clientes.index')
-                           ->with('error', 'Erro ao excluir cliente: ' . $e->getMessage());
+                ->with('error', 'Erro ao excluir cliente: ' . $e->getMessage());
         }
     }
 }
