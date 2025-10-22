@@ -13,11 +13,6 @@ use App\Models\Equipamento;
 use App\Models\Pedido;
 use Illuminate\Support\Facades\Auth;
 
-/*
-|--------------------------------------------------------------------------
-| Rotas Web
-|--------------------------------------------------------------------------
-*/
 
 
 Route::get('/', [AuthController::class, 'showFormLogin'])->name('login');
