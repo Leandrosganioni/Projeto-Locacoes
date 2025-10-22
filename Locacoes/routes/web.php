@@ -59,14 +59,13 @@ Route::middleware("auth")->group(function () {
     
 
     Route::middleware('role:funcionario,admin')->group(function () {
-
         Route::resource("clientes", ClienteController::class);
         Route::resource('equipamentos', EquipamentoController::class);
 
 
         Route::resource('pedidos', PedidoController::class)->except(['index', 'show']); 
 
-       
+
         Route::prefix('pedidos/itens')->name('pedidos.itens.')->group(function () {
             Route::post('{item}/reservar', [PedidoItemController::class, 'reservar'])->name('reservar');
             Route::post('{item}/retirar',  [PedidoItemController::class, 'retirar'])->name('retirar');
