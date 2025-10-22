@@ -37,32 +37,40 @@ class ClienteController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'nome' => 'required|string|max:100',
-            'cpf_cnpj' => ['required', 'string', 'max:18', Rule::unique('clientes')],
-            'telefone' => 'required|string|max:20',
-            'endereco' => 'required|string|max:200',
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class)],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
+
+        $validated = $request->validate(
+            [
+                'nome' => 'required|string|max:100',
+
+                'cpf' => ['required', 'string', 'max:14', Rule::unique('clientes')],
+                'telefone' => 'required|string|max:20',
+                'endereco' => 'required|string|max:200',
+                'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class)],
+                'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            ],
+            // Mantém as mensagens personalizadas, ajustando a chave para 'cpf.required'
+            [
+                'cpf.required' => 'O campo CPF é obrigatório.', // Ajustado
+                'cpf.unique' => 'Este CPF já está cadastrado.',   // Ajustado
+                'email.unique' => 'Este e-mail já está em uso.',
+                'password.confirmed' => 'A confirmação de senha não corresponde.',
+            ]
+        );
+
 
         DB::beginTransaction();
         try {
-            // 1. Criar o Cliente
-            // --- INÍCIO DA CORREÇÃO ---
+
             $cliente = Cliente::create([
                 'nome' => $validated['nome'],
-                'cpf_cnpj' => $validated['cpf_cnpj'],
+                'cpf' => $validated['cpf'], 
                 'telefone' => $validated['telefone'],
                 'endereco' => $validated['endereco'],
-                // 'email' => $validated['email'], // <-- REMOVIDA ESTA LINHA
             ]);
-            // --- FIM DA CORREÇÃO ---
 
-            // 2. Criar o Usuário associado (aqui o email está correto)
             $user = User::create([
                 'name' => $validated['nome'],
-                'email' => $validated['email'], // O email é salvo aqui
+                'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
                 'role' => 'cliente',
                 'cliente_id' => $cliente->id,
@@ -75,8 +83,7 @@ class ClienteController extends Controller
                 ->with('success', 'Cliente e acesso de utilizador cadastrados com sucesso!');
         } catch (\Exception $e) {
             DB::rollBack();
-
-            // Mostra o erro real para depuração
+            
             return redirect()->back()->with('error', $e->getMessage())->withInput();
         }
     }

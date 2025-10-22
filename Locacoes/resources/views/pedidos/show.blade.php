@@ -4,22 +4,17 @@
 
 @section('content')
 <div class="container py-5">
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2"> {{-- Adicionado flex-wrap e gap --}}
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h2 class="mb-0">Detalhes do Pedido #{{ $pedido->id }}</h2>
-        <div class="d-flex flex-wrap gap-2"> {{-- Adicionado flex-wrap e gap --}}
-            {{-- Botão Editar Pedido (apenas para funcionários e admins) --}}
+        <div class="d-flex flex-wrap gap-2">
+            
+
             @if(Auth::user()->role !== 'cliente')
-                {{-- Verifica se o pedido pode ser editado (nenhum item em locação ou devolvido) --}}
-                @php
-                    $podeEditar = $pedido->itens->every(fn($item) => $item->status === App\Models\PedidoProduto::STATUS_RESERVADO);
-                @endphp
-                <a href="{{ route('pedidos.edit', $pedido->id) }}" class="btn btn-outline-warning {{ !$podeEditar ? 'disabled' : '' }}"
-                   @if(!$podeEditar) title="Não pode ser editado pois contém itens em locação ou devolvidos" @endif>
+                <a href="{{ route('pedidos.edit', $pedido->id) }}" class="btn btn-outline-warning">
                     <i class="bi bi-pencil"></i> Editar Pedido
                 </a>
             @endif
 
-            {{-- Botões Comprovante e Evolução (visíveis para todos) --}}
             <a href="{{ route('pedidos.comprovante', $pedido->id) }}" class="btn btn-outline-primary">
                 <i class="bi bi-printer"></i> Imprimir
             </a>
@@ -98,7 +93,6 @@
                     <td>{{ $item->end_at ? $item->end_at->format('d/m/Y H:i') : '-' }}</td>
                     <td class="text-end">{{ number_format($item->daily_rate_snapshot, 2, ',', '.') }}</td>
                     <td class="text-end">
-                        {{-- Usa o helper para calcular e exibir o total --}}
                         @if($item->status === App\Models\PedidoProduto::STATUS_DEVOLVIDO)
                             {{ number_format($item->computed_total, 2, ',', '.') }}
                         @else
@@ -130,7 +124,6 @@
                                     </button>
                                 </form>
                             @else
-                                {{-- Nenhuma ação para itens devolvidos ou cancelados --}}
                                 <span class="text-muted">-</span>
                             @endif
                         </div>
@@ -139,7 +132,6 @@
                 </tr>
                 @empty
                  <tr>
-                    {{-- Ajusta o número de colunas vazias --}}
                     <td colspan="{{ Auth::user()->role !== 'cliente' ? 8 : 7 }}" class="text-center text-muted py-3">Nenhum item neste pedido.</td>
                 </tr>
                 @endforelse
@@ -149,7 +141,6 @@
 
     <div class="mt-3">
         @php
-            // Calcula o total apenas dos itens devolvidos
             $totalPedidoDevolvido = $pedido->itens
                                         ->where('status', App\Models\PedidoProduto::STATUS_DEVOLVIDO)
                                         ->sum('computed_total');
@@ -157,7 +148,6 @@
         <h5 class="fw-semibold">Total (apenas itens devolvidos): R$ {{ number_format($totalPedidoDevolvido, 2, ',', '.') }}</h5>
     </div>
 
-    {{-- Gráfico de evolução do valor do pedido (visível para todos) --}}
     <div class="mt-5">
         <h5 class="fw-semibold mb-3">Evolução do valor do pedido (projeção)</h5>
         <div style="position: relative; height: 400px;">
@@ -170,7 +160,6 @@
 @push('styles')
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 <style>
-    /* Estilo para badges com texto escuro em fundo claro */
     .badge.bg-warning.text-dark,
     .badge.bg-light.text-dark { color: #333 !important; }
 </style>
@@ -178,5 +167,5 @@
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="{{ asset('js/pedido_grafico.js') }}"></script> 
+<script src="{{ asset('js/pedido_grafico.js') }}"></script>
 @endpush

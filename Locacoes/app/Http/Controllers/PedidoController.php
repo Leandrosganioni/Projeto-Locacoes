@@ -129,43 +129,28 @@ class PedidoController extends Controller
 
     public function edit($id)
     {
-        $user = Auth::user();
-        // Apenas Admin e Funcionário podem editar
-        if ($user->role === 'cliente') {
-             abort(403, 'Acesso não autorizado.');
-        }
 
+        
         $pedido = Pedido::with('itens')->findOrFail($id);
 
-        // Verifica se todos os itens estão 'reservado'. Se algum já foi retirado/devolvido, não permite editar.
-        $podeEditar = $pedido->itens->every(fn($item) => $item->status === PedidoProduto::STATUS_RESERVADO);
 
-        if (!$podeEditar) {
-             return redirect()->route('pedidos.show', $pedido->id)->with('error', 'Não é possível editar um pedido com itens já em locação ou devolvidos.');
-        }
 
         return view('pedidos.edit', [
             'pedido' => $pedido,
-            'clientes' => Cliente::orderBy('nome')->get(),
-            'funcionarios' => Funcionario::orderBy('nome')->get(),
-            'produtos' => Equipamento::orderBy('nome')->get() // Mostra todos para poder adicionar/remover
+            'clientes' => Cliente::orderBy('nome')->get(), 
+            'funcionarios' => Funcionario::orderBy('nome')->get(), 
+            'produtos' => Equipamento::orderBy('nome')->get()
         ]);
     }
 
     public function update(Request $request, $id)
     {
-         $user = Auth::user();
-         // Apenas Admin e Funcionário podem editar
-         if ($user->role === 'cliente') {
-              abort(403, 'Acesso não autorizado.');
-         }
 
+        
         $request->validate([
-            //'cliente_id'     => 'required|exists:clientes,id', // Cliente não deve ser alterado na edição
-            //'funcionario_id' => 'required|exists:funcionarios,id', // Funcionário não deve ser alterado na edição
-            'local_entrega'  => 'required|string|max:255',
+            'local_entrega'  => 'required|string|max:255', 
             'data_entrega'   => 'required|date',
-            'produtos'       => 'nullable|array', // Pode não haver produtos selecionados
+            'produtos'       => 'nullable|array',
             'produtos.*'     => 'exists:equipamentos,id',
             'quantidades'    => 'required_with:produtos|array',
             'quantidades.*'  => 'required|integer|min:1',
@@ -175,14 +160,7 @@ class PedidoController extends Controller
         try {
             $pedido = Pedido::with('itens.equipamento')->findOrFail($id);
 
-            // Verifica se o pedido ainda pode ser editado
-            $podeEditar = $pedido->itens->every(fn($item) => $item->status === PedidoProduto::STATUS_RESERVADO);
-            if (!$podeEditar) {
-                DB::rollBack();
-                return redirect()->route('pedidos.show', $pedido->id)->with('error', 'Não é possível editar um pedido com itens já em locação ou devolvidos.');
-            }
 
-            // Atualiza dados básicos do pedido (cliente/funcionário não mudam)
             $pedido->local_entrega  = $request->local_entrega;
             $pedido->data_entrega   = $request->data_entrega;
             $pedido->save();
@@ -191,55 +169,56 @@ class PedidoController extends Controller
             $quantidadesReq       = $request->input('quantidades', []);
             $quantidades = [];
             foreach ($quantidadesReq as $eid => $qtd) {
-                // Garante que só processamos quantidades para produtos que foram selecionados
                 if (in_array($eid, $produtosSelecionados)) {
                     $quantidades[$eid] = (int)$qtd;
                 }
             }
 
-            $idsItensAtuais = $pedido->itens->pluck('equipamento_id')->toArray();
-            $idsSelecionados = $produtosSelecionados; // IDs dos equipamentos que devem estar no pedido final
+            $idsSelecionados = $produtosSelecionados; 
             $idsParaManter = [];
 
-            // 1. Atualizar ou Remover itens existentes
+
             foreach ($pedido->itens as $item) {
                 $eid = $item->equipamento_id;
 
-                // Se o item existente está na nova seleção
                 if (in_array($eid, $idsSelecionados) && isset($quantidades[$eid])) {
                     $novaQuant = $quantidades[$eid];
-                    if ($novaQuant > 0) {
-                        // Tenta alterar a quantidade (método no Model PedidoProduto)
-                        if (!$item->alterarQuantidade($novaQuant)) {
-                            DB::rollBack();
-                            return back()->with('error', "Estoque insuficiente ou erro ao atualizar {$item->equipamento->nome}.")->withInput();
+                    
+                    if ($item->status === PedidoProduto::STATUS_RESERVADO) {
+                        if ($novaQuant > 0) {
+                            if (!$item->alterarQuantidade($novaQuant)) {
+                                DB::rollBack();
+                                return back()->with('error', "Estoque insuficiente ou erro ao atualizar {$item->equipamento->nome}.")->withInput();
+                            }
+                            $idsParaManter[] = $eid;
+                        } else {
+                            $item->cancelar(); 
+                            $item->delete();
                         }
-                        $idsParaManter[] = $eid; // Marca para manter
                     } else {
-                        // Quantidade <= 0 significa remover
-                        $item->cancelar(); // Libera estoque
-                        $item->delete();   // Remove do banco
+                         $idsParaManter[] = $eid;
                     }
+
                 } else {
-                    // Item não está na nova seleção, remover
-                    $item->cancelar(); // Libera estoque
-                    $item->delete();   // Remove do banco
+                    if ($item->status === PedidoProduto::STATUS_RESERVADO) {
+                        $item->cancelar(); 
+                        $item->delete();
+                    }
                 }
             }
 
-            // 2. Adicionar novos itens
+
             $idsParaAdicionar = array_diff($idsSelecionados, $idsParaManter);
             foreach ($idsParaAdicionar as $eid) {
                 $novaQuant = $quantidades[$eid] ?? 0;
                 if ($novaQuant <= 0) continue;
 
                 $equipamento = Equipamento::find($eid);
-                if (!$equipamento) { // Segurança extra
+                if (!$equipamento) { 
                     DB::rollBack();
                     return back()->with('error', "Equipamento ID {$eid} não encontrado.")->withInput();
                 }
 
-                // Verificar estoque disponível ANTES de criar/reservar
                 if ($equipamento->quantidade_disponivel < $novaQuant) {
                     DB::rollBack();
                     return back()->with('error', "Estoque insuficiente para adicionar {$equipamento->nome}. Disponível: {$equipamento->quantidade_disponivel}.")->withInput();
@@ -253,17 +232,19 @@ class PedidoController extends Controller
                     'daily_rate_snapshot' => (float)($equipamento->daily_rate ?? 0),
                 ]);
 
-                if (!$novoItem->reservar()) { // Reserva o estoque
+                if (!$novoItem->reservar()) { 
                     DB::rollBack();
                     return back()->with('error', "Falha ao reservar o novo item {$equipamento->nome}.")->withInput();
                 }
             }
 
             DB::commit();
-            return redirect()->route('pedidos.index')->with('success', 'Pedido atualizado com sucesso!');
+            return redirect()->route('pedidos.show', $pedido->id)->with('success', 'Pedido atualizado com sucesso!');
+        
         } catch (\Exception $e) {
             DB::rollBack();
-            // Log::error('Erro ao atualizar pedido: ' . $e->getMessage()); // Descomente para logar
+            
+
             return back()->with('error', 'Erro interno ao atualizar pedido: ' . $e->getMessage())->withInput();
         }
     }

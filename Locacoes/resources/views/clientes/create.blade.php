@@ -7,7 +7,6 @@
     <div class="bg-white shadow rounded p-4">
         <h2 class="mb-4 fw-semibold">Adicionar Novo Cliente</h2>
 
-        {{-- Exibe erros de validação gerais, se houver --}}
         @if ($errors->any())
             <div class="alert alert-danger">
                 <ul class="mb-0">
@@ -17,11 +16,10 @@
                 </ul>
             </div>
         @endif
-        
+
         <form method="POST" action="{{ route('clientes.store') }}">
             @csrf
-            
-            {{-- Campos existentes --}}
+
             <div class="mb-3">
                 <label for="nome" class="form-label">Nome Completo</label>
                 <input type="text" class="form-control @error('nome') is-invalid @enderror" id="nome" name="nome" value="{{ old('nome') }}" required>
@@ -29,15 +27,15 @@
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
-            
+
             <div class="row mb-3">
-                
-                {{-- --- A CORREÇÃO ESTÁ AQUI --- --}}
-                {{-- O nome do campo (name) deve ser 'cpf_cnpj' para corresponder ao Controller e ao Banco de Dados --}}
+
+                {{-- --- INÍCIO DA CORREÇÃO --- --}}
                 <div class="col-md-6">
-                    <label for="cpf_cnpj" class="form-label">CPF/CNPJ</label>
-                    <input type="text" class="form-control @error('cpf_cnpj') is-invalid @enderror" id="cpf_cnpj" name="cpf_cnpj" placeholder="000.000.000-00 ou 00.000.000/0000-00" value="{{ old('cpf_cnpj') }}" required>
-                     @error('cpf_cnpj')
+                    {{-- Alterado label, for, id, name, @error, e old() de volta para 'cpf' --}}
+                    <label for="cpf" class="form-label">CPF</label>
+                    <input type="text" class="form-control @error('cpf') is-invalid @enderror" id="cpf" name="cpf" placeholder="000.000.000-00" value="{{ old('cpf') }}" required>
+                     @error('cpf')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
@@ -51,7 +49,7 @@
                     @enderror
                 </div>
             </div>
-            
+
             <div class="mb-3">
                 <label for="endereco" class="form-label">Endereço</label>
                 <textarea class="form-control @error('endereco') is-invalid @enderror" id="endereco" name="endereco" rows="3" required>{{ old('endereco') }}</textarea>
@@ -86,8 +84,7 @@
                     <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" required>
                 </div>
             </div>
-            
-            {{-- Botões de ação --}}
+
             <div class="mt-4 d-flex justify-content-end gap-2">
                  <a href="{{ route('clientes.index') }}" class="btn btn-outline-secondary">
                     <i class="bi bi-x-circle me-1"></i> Cancelar

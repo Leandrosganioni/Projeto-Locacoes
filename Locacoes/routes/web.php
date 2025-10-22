@@ -11,7 +11,8 @@ use App\Http\Controllers\PedidoItemController;
 use App\Models\Cliente;
 use App\Models\Equipamento;
 use App\Models\Pedido;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Auth; 
+
 
 Route::get('/', [AuthController::class, 'showFormLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
@@ -19,20 +20,22 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/register', [AuthController::class, 'showFormRegister'])->name('register');
 Route::post('/create-user', [AuthController::class, 'create'])->name('createUser');
 
+
 Route::middleware("auth")->group(function () {
+
 
     Route::get('/index', function () {
         $user = Auth::user();
 
+
         if ($user->role === 'cliente') {
-            
             $equipamentosDisponiveis = Equipamento::where('quantidade_disponivel', '>', 0)
                                                 ->orderBy('nome')
                                                 ->get(['id', 'nome', 'imagem', 'daily_rate']);
             return view('index_cliente', compact('equipamentosDisponiveis'));
         }
 
-        
+
         $totalEquipamentos = Equipamento::count();
         $totalClientes = Cliente::count();
         $totalPedidos = Pedido::count();
@@ -40,9 +43,11 @@ Route::middleware("auth")->group(function () {
 
     })->name('index');
 
+
     Route::post("/logout", [AuthController::class, "logout"])->name('logout');
 
     
+
     Route::middleware('role:cliente,funcionario,admin')->group(function () {
         Route::get('pedidos', [PedidoController::class, 'index'])->name('pedidos.index');
         Route::get('pedidos/{pedido}', [PedidoController::class, 'show'])->name('pedidos.show');
@@ -52,15 +57,16 @@ Route::middleware("auth")->group(function () {
     });
 
     
+
     Route::middleware('role:funcionario,admin')->group(function () {
-        Route::resource("clientes", ClienteController::class)->except(['index', 'show']); 
-        Route::get('clientes', [ClienteController::class, 'index'])->name('clientes.index');
-        Route::get('clientes/{cliente}', [ClienteController::class, 'show'])->name('clientes.show');
-        
+
+        Route::resource("clientes", ClienteController::class);
         Route::resource('equipamentos', EquipamentoController::class);
+
 
         Route::resource('pedidos', PedidoController::class)->except(['index', 'show']); 
 
+       
         Route::prefix('pedidos/itens')->name('pedidos.itens.')->group(function () {
             Route::post('{item}/reservar', [PedidoItemController::class, 'reservar'])->name('reservar');
             Route::post('{item}/retirar',  [PedidoItemController::class, 'retirar'])->name('retirar');
@@ -70,6 +76,7 @@ Route::middleware("auth")->group(function () {
     });
 
     
+
     Route::middleware('role:admin')->group(function () {
         Route::resource('funcionarios', FuncionarioController::class);
         Route::resource('usuarios', UsuarioController::class); 

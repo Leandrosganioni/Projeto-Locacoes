@@ -10,7 +10,7 @@ class Cliente extends Model
     use HasFactory;
     
 
-    protected $fillable = ['nome', 'cpf_cnpj', 'telefone', 'endereco'];
+    protected $fillable = ['nome', 'cpf', 'telefone', 'endereco'];
 
     public function pedidos()
     {
