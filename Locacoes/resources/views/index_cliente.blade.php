@@ -39,7 +39,7 @@
     <div class="card shadow-sm mb-4 border-0">
         <div class="card-body p-4 text-center bg-light rounded">
             <h5 class="fw-semibold">Precisa de ajuda ou quer fazer uma nova locação?</h5>
-            <p class="mb-3">Entre em contacto connosco diretamente pelo WhatsApp!</p>
+            <p class="mb-3">Entre em contato conosco diretamente pelo WhatsApp!</p>
 
             @php
 
@@ -51,7 +51,7 @@
             @endphp
 
             <a href="{{ $linkWhatsApp }}" target="_blank" class="btn btn-success btn-lg">
-                <i class="bi bi-whatsapp me-2"></i> Falar Connosco (18) 98154-1548
+                <i class="bi bi-whatsapp me-2"></i> Falar Conosco (18) 98154-1548
             </a>
         </div>
     </div>
