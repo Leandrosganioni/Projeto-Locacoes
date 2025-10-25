@@ -8,22 +8,32 @@ use App\Models\Cliente;
 use App\Models\Funcionario;
 use App\Models\Equipamento;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth; // <-- Adicionado: Para acessar o usuário logado
 use Illuminate\Support\Facades\DB;
 
 class PedidoController extends Controller
 {
     public function index()
     {
-        $pedidos = Pedido::with(['cliente', 'funcionario'])->get();
+        $user = Auth::user();
+        $query = Pedido::with(['cliente', 'funcionario']);
+
+        // Filtra pedidos se o usuário for cliente
+        if ($user->role === 'cliente') {
+            $query->where('cliente_id', $user->cliente_id);
+        }
+
+        $pedidos = $query->orderBy('created_at', 'desc')->get(); // Ordenar por mais recente
+
         return view('pedidos.index', compact('pedidos'));
     }
 
     public function create()
     {
         return view('pedidos.create', [
-            'clientes' => Cliente::all(),
-            'funcionarios' => Funcionario::all(),
-            'produtos' => Equipamento::all()
+            'clientes' => Cliente::orderBy('nome')->get(), // Ordenar clientes
+            'funcionarios' => Funcionario::orderBy('nome')->get(), // Ordenar funcionários
+            'produtos' => Equipamento::where('quantidade_disponivel', '>', 0)->orderBy('nome')->get() // Apenas disponíveis e ordenados
         ]);
     }
 
@@ -32,9 +42,10 @@ class PedidoController extends Controller
         $request->validate([
             'cliente_id' => 'required|exists:clientes,id',
             'funcionario_id' => 'required|exists:funcionarios,id',
-            'local_entrega' => 'required|string',
+            'local_entrega' => 'required|string|max:255',
             'data_entrega' => 'required|date',
-            'produtos' => 'required|array',
+            'produtos' => 'required|array|min:1',
+            'produtos.*' => 'exists:equipamentos,id',
             'quantidades' => 'required|array',
             'quantidades.*' => 'required|integer|min:1',
         ]);
@@ -48,7 +59,7 @@ class PedidoController extends Controller
                 'data_entrega' => $request->data_entrega
             ]);
 
-            // 1) VERIFICA disponibilidade (sem abater aqui)
+            // Verifica disponibilidade
             foreach ($request->produtos as $equipamento_id) {
                 $quantidade = (int)($request->quantidades[$equipamento_id] ?? 0);
                 $equipamento = Equipamento::find($equipamento_id);
@@ -56,19 +67,21 @@ class PedidoController extends Controller
 
                 if (!$equipamento) {
                     DB::rollBack();
-                    return redirect()->back()->with('error', "Equipamento não encontrado: {$nome}.");
+                    return redirect()->back()->with('error', "Equipamento não encontrado: {$nome}.")->withInput();
                 }
 
                 if ($equipamento->quantidade_disponivel < $quantidade) {
                     DB::rollBack();
-                    return redirect()->back()->with('error', "Estoque insuficiente para o equipamento {$nome}.");
+                    return redirect()->back()->with('error', "Estoque insuficiente para {$nome}. Disponível: {$equipamento->quantidade_disponivel}.")->withInput();
                 }
             }
 
-            // 2) CRIA item + RESERVA via model (é aqui que baixa disponibilidade)
+            // Cria item e reserva estoque
             foreach ($request->produtos as $equipamento_id) {
                 $quantidade  = (int)($request->quantidades[$equipamento_id] ?? 0);
-                $equipamento = Equipamento::find($equipamento_id);
+                if ($quantidade <= 0) continue; // Pula se quantidade for inválida
+
+                $equipamento = Equipamento::find($equipamento_id); // Já sabemos que existe
 
                 $item = PedidoProduto::create([
                     'pedido_id'           => $pedido->id,
@@ -78,9 +91,9 @@ class PedidoController extends Controller
                     'daily_rate_snapshot' => (float)($equipamento->daily_rate ?? 0),
                 ]);
 
-                if (!$item->reservar()) { // aqui reduz quantidade_disponivel usando Equipamento::reservar
+                if (!$item->reservar()) { // Método no Model PedidoProduto que chama Equipamento::reservar
                     DB::rollBack();
-                    return redirect()->back()->with('error', "Falha ao reservar {$equipamento->nome}.");
+                    return redirect()->back()->with('error', "Falha ao reservar {$equipamento->nome}. Verifique o estoque novamente.")->withInput();
                 }
             }
 
@@ -88,104 +101,58 @@ class PedidoController extends Controller
             return redirect()->route('pedidos.index')->with('success', 'Pedido criado com sucesso!');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Erro ao criar pedido: ' . $e->getMessage());
+            // Log::error('Erro ao criar pedido: ' . $e->getMessage()); // Descomente se quiser logar o erro
+            return redirect()->back()->with('error', 'Erro interno ao criar pedido. Tente novamente.')->withInput();
         }
     }
 
-    public function edit($id)
-    {
-        $pedido = Pedido::with('itens')->findOrFail($id);
-
-        return view('pedidos.edit', [
-            'pedido' => $pedido,
-            'clientes' => Cliente::all(),
-            'funcionarios' => Funcionario::all(),
-            'produtos' => Equipamento::all()
-        ]);
-    }
-
-    /**
-     * Exibe os detalhes de um pedido, incluindo seus itens e informações relacionadas.
-     * Esta página serve como a visualização completa do pedido, permitindo ver
-     * cliente, funcionário e itens com botões de ações (reservar, retirar, devolver, cancelar).
-     *
-     * @param  int  $id
-     * @return \Illuminate\View\View
-     */
     public function show($id)
     {
-        // Carrega o pedido com relações para exibição completa
-        $pedido = Pedido::with(['cliente', 'funcionario', 'itens.equipamento'])->findOrFail($id);
+        $user = Auth::user();
+        $query = Pedido::with(['cliente', 'funcionario', 'itens.equipamento']);
+
+        // Se for cliente, aplica filtro para garantir que só veja o seu
+        if ($user->role === 'cliente') {
+            $query->where('cliente_id', $user->cliente_id);
+        }
+
+        $pedido = $query->find($id);
+
+        // Verifica se o pedido foi encontrado E se pertence ao cliente (caso seja cliente)
+        if (!$pedido) {
+            abort(404, 'Pedido não encontrado ou não pertence a você.'); // Ou redirecionar com erro
+        }
+
         return view('pedidos.show', compact('pedido'));
     }
 
-    /**
-     * Mostra a evolução diária (decorridos) dos itens de um pedido.
-     * Para cada item, gera uma série de dados dia-a-dia contendo a parcela calculada
-     * e o acumulado. Também gera uma série agregada somando todos os itens por data.
-     *
-     * @param  \App\Models\Pedido  $pedido
-     * @return \Illuminate\Contracts\View\View
-     */
-    public function decorridos(Pedido $pedido)
-    {
-        $pedido->load('itens.equipamento');
-        $series = [];
-        foreach ($pedido->itens as $item) {
-            // gera série por item utilizando a lógica da model
-            $series[$item->id] = $item->breakdownDecorrido();
-        }
-        // Série agregada: soma os valores por data
-        $agregado = $this->agruparSeries($series);
-        return view('pedidos.decorridos', compact('pedido', 'series', 'agregado'));
-    }
 
-    /**
-     * Agrupa várias séries de itens em uma única série agregada por data.
-     * Cada item da entrada deve ser um array indexado por item contendo arrays com
-     * chaves 'data' e 'parcela'. O retorno é um array onde cada elemento possui
-     * a data e a soma das parcelas daquela data, além do acumulado progressivo.
-     *
-     * @param  array $series
-     * @return array
-     */
-    protected function agruparSeries(array $series): array
+    public function edit($id)
     {
-        $agrupado = [];
-        // Itera todas as séries e soma por data
-        foreach ($series as $itemId => $dados) {
-            foreach ($dados as $linha) {
-                $data = $linha['data'];
-                if (!isset($agrupado[$data])) {
-                    $agrupado[$data] = 0.0;
-                }
-                $agrupado[$data] += (float)($linha['parcela'] ?? 0);
-            }
-        }
-        // Ordena por data e calcula acumulado
-        ksort($agrupado);
-        $acumulado = 0.0;
-        $resultado = [];
-        foreach ($agrupado as $data => $valor) {
-            $acumulado += $valor;
-            $resultado[] = [
-                'data'      => $data,
-                'total'     => round($valor, 2),
-                'acumulado' => round($acumulado, 2),
-            ];
-        }
-        return $resultado;
+
+        
+        $pedido = Pedido::with('itens')->findOrFail($id);
+
+
+
+        return view('pedidos.edit', [
+            'pedido' => $pedido,
+            'clientes' => Cliente::orderBy('nome')->get(), 
+            'funcionarios' => Funcionario::orderBy('nome')->get(), 
+            'produtos' => Equipamento::orderBy('nome')->get()
+        ]);
     }
 
     public function update(Request $request, $id)
     {
+
+        
         $request->validate([
-            'cliente_id'     => 'required|exists:clientes,id',
-            'funcionario_id' => 'required|exists:funcionarios,id',
-            'local_entrega'  => 'required|string',
+            'local_entrega'  => 'required|string|max:255', 
             'data_entrega'   => 'required|date',
-            'produtos'       => 'required|array',
-            'quantidades'    => 'required|array',
+            'produtos'       => 'nullable|array',
+            'produtos.*'     => 'exists:equipamentos,id',
+            'quantidades'    => 'required_with:produtos|array',
             'quantidades.*'  => 'required|integer|min:1',
         ]);
 
@@ -193,67 +160,70 @@ class PedidoController extends Controller
         try {
             $pedido = Pedido::with('itens.equipamento')->findOrFail($id);
 
-            // Atualiza dados básicos do pedido
-            $pedido->cliente_id     = $request->cliente_id;
-            $pedido->funcionario_id = $request->funcionario_id;
+
             $pedido->local_entrega  = $request->local_entrega;
             $pedido->data_entrega   = $request->data_entrega;
             $pedido->save();
 
-            // Recupera seleção de equipamentos e quantidades
             $produtosSelecionados = $request->input('produtos', []);
             $quantidadesReq       = $request->input('quantidades', []);
-            // Converte quantidades para inteiro
             $quantidades = [];
             foreach ($quantidadesReq as $eid => $qtd) {
-                $quantidades[$eid] = (int)$qtd;
+                if (in_array($eid, $produtosSelecionados)) {
+                    $quantidades[$eid] = (int)$qtd;
+                }
             }
-            
-            // Armazena IDs já processados para evitar recriar itens existentes
-            $processados = [];
+
+            $idsSelecionados = $produtosSelecionados; 
+            $idsParaManter = [];
+
 
             foreach ($pedido->itens as $item) {
                 $eid = $item->equipamento_id;
-                if (in_array($eid, $produtosSelecionados)) {
-                    $novaQuant = $quantidades[$eid] ?? 0;
-                    if ($novaQuant <= 0) {
-                        // Remover apenas se ainda está reservado
-                        if ($item->status === PedidoProduto::STATUS_RESERVADO) {
-                            $item->cancelar();
-                        }
-                    } else {
-                        // Ajustar quantidade se mudou e item está reservado
-                        if ($item->status === PedidoProduto::STATUS_RESERVADO && $novaQuant != (int)$item->quantidade) {
+
+                if (in_array($eid, $idsSelecionados) && isset($quantidades[$eid])) {
+                    $novaQuant = $quantidades[$eid];
+                    
+                    if ($item->status === PedidoProduto::STATUS_RESERVADO) {
+                        if ($novaQuant > 0) {
                             if (!$item->alterarQuantidade($novaQuant)) {
                                 DB::rollBack();
-                                return back()->with('error', "Não foi possível atualizar a quantidade do item {$item->equipamento->nome}.");
+                                return back()->with('error', "Estoque insuficiente ou erro ao atualizar {$item->equipamento->nome}.")->withInput();
                             }
+                            $idsParaManter[] = $eid;
+                        } else {
+                            $item->cancelar(); 
+                            $item->delete();
                         }
+                    } else {
+                         $idsParaManter[] = $eid;
                     }
-                    $processados[] = $eid;
+
                 } else {
-                    // item desmarcado: cancelar somente se reservado
                     if ($item->status === PedidoProduto::STATUS_RESERVADO) {
-                        $item->cancelar();
+                        $item->cancelar(); 
+                        $item->delete();
                     }
                 }
             }
 
-            // Adiciona novos itens para equipamentos não processados
-            foreach ($produtosSelecionados as $eid) {
-                if (in_array($eid, $processados)) continue;
+
+            $idsParaAdicionar = array_diff($idsSelecionados, $idsParaManter);
+            foreach ($idsParaAdicionar as $eid) {
                 $novaQuant = $quantidades[$eid] ?? 0;
                 if ($novaQuant <= 0) continue;
+
                 $equipamento = Equipamento::find($eid);
-                if (!$equipamento) {
+                if (!$equipamento) { 
                     DB::rollBack();
-                    return back()->with('error', "Equipamento não encontrado: ID {$eid}.");
+                    return back()->with('error', "Equipamento ID {$eid} não encontrado.")->withInput();
                 }
-                // Verificar estoque disponível
+
                 if ($equipamento->quantidade_disponivel < $novaQuant) {
                     DB::rollBack();
-                    return back()->with('error', "Estoque insuficiente para o equipamento {$equipamento->nome}.");
+                    return back()->with('error', "Estoque insuficiente para adicionar {$equipamento->nome}. Disponível: {$equipamento->quantidade_disponivel}.")->withInput();
                 }
+
                 $novoItem = PedidoProduto::create([
                     'pedido_id'           => $pedido->id,
                     'equipamento_id'      => $eid,
@@ -261,83 +231,94 @@ class PedidoController extends Controller
                     'status'              => PedidoProduto::STATUS_RESERVADO,
                     'daily_rate_snapshot' => (float)($equipamento->daily_rate ?? 0),
                 ]);
-                if (!$novoItem->reservar()) {
+
+                if (!$novoItem->reservar()) { 
                     DB::rollBack();
-                    return back()->with('error', "Falha ao reservar {$equipamento->nome}.");
+                    return back()->with('error', "Falha ao reservar o novo item {$equipamento->nome}.")->withInput();
                 }
             }
 
             DB::commit();
-            return redirect()->route('pedidos.index')->with('success', 'Pedido atualizado com sucesso!');
+            return redirect()->route('pedidos.show', $pedido->id)->with('success', 'Pedido atualizado com sucesso!');
+        
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Erro ao atualizar pedido: ' . $e->getMessage());
+            
+
+            return back()->with('error', 'Erro interno ao atualizar pedido: ' . $e->getMessage())->withInput();
         }
     }
 
 
     public function destroy($id)
-{
-    DB::beginTransaction();
-    try {
-        $pedido = Pedido::with('itens')->findOrFail($id);
-
-        // libera estoque de cada item (se estiver reservado)
-        foreach ($pedido->itens as $item) {
-            // se estiver em_locacao, pode decidir devolver() ou impedir exclusão
-            $item->cancelar();
+    {
+        $user = Auth::user();
+        // Apenas Admin e Funcionário podem excluir
+        if ($user->role === 'cliente') {
+             abort(403, 'Acesso não autorizado.');
         }
 
-        PedidoProduto::where('pedido_id', $pedido->id)->delete();
-        $pedido->delete();
+        DB::beginTransaction();
+        try {
+            $pedido = Pedido::with('itens')->findOrFail($id);
 
-        DB::commit();
-        return redirect()->route('pedidos.index')->with('success', 'Pedido excluído com sucesso!');
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return redirect()->route('pedidos.index')->with('error', 'Erro ao excluir pedido: ' . $e->getMessage());
+            // Libera estoque de cada item (se estiver reservado ou em locação)
+            foreach ($pedido->itens as $item) {
+                 if ($item->status === PedidoProduto::STATUS_RESERVADO || $item->status === PedidoProduto::STATUS_EM_LOCACAO) {
+                      $item->cancelar(); // Usa o método cancelar para liberar estoque corretamente
+                 }
+            }
+
+            // A exclusão dos itens é feita em cascata pelo onDelete('cascade') na migration,
+
+            // PedidoProduto::where('pedido_id', $pedido->id)->delete();
+
+            $pedido->delete(); // Exclui o pedido (e itens em cascata)
+
+            DB::commit();
+            return redirect()->route('pedidos.index')->with('success', 'Pedido excluído com sucesso!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            // Log::error('Erro ao excluir pedido: ' . $e->getMessage()); // Descomente para logar
+            return redirect()->route('pedidos.index')->with('error', 'Erro ao excluir pedido: ' . $e->getMessage());
+        }
     }
-}
 
-    /**
-     * Exibe uma versão do pedido adequada para impressão como comprovante.
-     * Esta página não possui botões de ação e pode ser impressa diretamente
-     * pelo navegador através de window.print().
-     *
-     * @param  int  $id
-     * @return \Illuminate\View\View
-     */
     public function comprovante($id)
     {
-        // Carrega o pedido e suas relações (cliente, funcionário e itens)
-        $pedido = Pedido::with(['cliente', 'funcionario', 'itens.equipamento'])->findOrFail($id);
+        $user = Auth::user();
+        $query = Pedido::with(['cliente', 'funcionario', 'itens.equipamento']);
+
+        // Se for cliente, aplica filtro
+        if ($user->role === 'cliente') {
+            $query->where('cliente_id', $user->cliente_id);
+        }
+
+        $pedido = $query->find($id);
+
+        if (!$pedido) {
+            abort(404, 'Pedido não encontrado ou não pertence a você.');
+        }
 
         return view('pedidos.comprovante', compact('pedido'));
     }
 
-    /**
-     * Retorna dados em JSON para o gráfico de evolução do valor do pedido.
-     * Para cada item, gera a série diária utilizando breakdownDecorrido() e
-     * agrupa todas em uma série agregada. Também coleta eventos de adição
-     * (retirada) e finalização (devolução) de cada equipamento para marcar no gráfico.
-     *
-     * @param  \App\Models\Pedido  $pedido
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function grafico(Pedido $pedido)
+    public function grafico(Pedido $pedido) // Route Model Binding já carrega o pedido
     {
-        // Carrega itens com equipamentos para acessar nome e datas
-        $pedido->load('itens.equipamento');
+        $user = Auth::user();
 
-        // Série por item: cada item retorna seu breakdown diário
+        // Se for cliente, verifica se o pedido pertence a ele
+        if ($user->role === 'cliente' && $pedido->cliente_id !== $user->cliente_id) {
+             abort(403, 'Acesso não autorizado.');
+        }
+
+        $pedido->load('itens.equipamento');
         $seriesPorItem = [];
         foreach ($pedido->itens as $item) {
             $seriesPorItem[$item->id] = $item->breakdownDecorrido();
         }
-        // Série agregada somando valores por data
         $agregado = $this->agruparSeries($seriesPorItem);
 
-        // Coleta eventos de adição (retirada) e finalização (devolução)
         $events = [];
         foreach ($pedido->itens as $item) {
             if ($item->start_at) {
@@ -360,5 +341,50 @@ class PedidoController extends Controller
             'series' => $agregado,
             'events' => $events,
         ]);
+    }
+
+    public function decorridos(Pedido $pedido) // Route Model Binding
+    {
+        $user = Auth::user();
+
+        // Se for cliente, verifica se o pedido pertence a ele
+        if ($user->role === 'cliente' && $pedido->cliente_id !== $user->cliente_id) {
+             abort(403, 'Acesso não autorizado.');
+        }
+
+        $pedido->load('itens.equipamento');
+        $series = [];
+        foreach ($pedido->itens as $item) {
+            $series[$item->id] = $item->breakdownDecorrido();
+        }
+        $agregado = $this->agruparSeries($series);
+
+        return view('pedidos.decorridos', compact('pedido', 'series', 'agregado'));
+    }
+
+    protected function agruparSeries(array $series): array
+    {
+        $agrupado = [];
+        foreach ($series as $itemId => $dados) {
+            foreach ($dados as $linha) {
+                $data = $linha['data'];
+                if (!isset($agrupado[$data])) {
+                    $agrupado[$data] = 0.0;
+                }
+                $agrupado[$data] += (float)($linha['parcela'] ?? 0);
+            }
+        }
+        ksort($agrupado); // Ordena por data
+        $acumulado = 0.0;
+        $resultado = [];
+        foreach ($agrupado as $data => $valor) {
+            $acumulado += $valor;
+            $resultado[] = [
+                'data'      => $data,
+                'total'     => round($valor, 2),
+                'acumulado' => round($acumulado, 2),
+            ];
+        }
+        return $resultado;
     }
 }
