@@ -94,8 +94,7 @@ class EquipamentoController extends Controller
             'informacoes_manutencao',
         ]);
 
-        // NÃO mexe em quantidade_disponivel aqui (é controlado por reservas/retiradas/devoluções).
-        // Apenas mantém a coluna legado 'quantidade' sincronizada, se existir.
+
         if (\Schema::hasColumn('equipamentos', 'quantidade')) {
             $data['quantidade'] = (int)$request->quantidade_total;
         }

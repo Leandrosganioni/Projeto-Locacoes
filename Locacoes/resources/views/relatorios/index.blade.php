@@ -14,7 +14,7 @@
                     <div class="card h-100 shadow-sm border-0 card-hover">
                         <div class="card-body text-center p-4 d-flex flex-column justify-content-center">
                             <h5 class="card-title text-primary"><i class="bi bi-boxes fs-2 mb-2"></i></h5>
-                            <h6 class="card-subtitle mb-2 fw-bold">F_S01: Relação de Estoque</h6>
+                            <h6 class="card-subtitle mb-2 fw-bold">Relação de Estoque</h6>
                             <p class="card-text small text-muted">Gráfico e tabela da situação atual do estoque.</p>
                         </div>
                     </div>
@@ -26,7 +26,7 @@
                     <div class="card h-100 border-0 bg-light">
                         <div class="card-body text-center p-4 d-flex flex-column justify-content-center">
                             <h5 class="card-title text-muted"><i class="bi bi-graph-up-arrow fs-2 mb-2"></i></h5>
-                            <h6 class="card-subtitle mb-2 fw-bold text-muted">F_S02: Relatório Financeiro</h6>
+                            <h6 class="card-subtitle mb-2 fw-bold text-muted">Relatório Financeiro</h6>
                             <p class="card-text small text-muted">(Em breve)</p>
                         </div>
                     </div>
@@ -38,7 +38,7 @@
                     <div class="card h-100 border-0 bg-light">
                         <div class="card-body text-center p-4 d-flex flex-column justify-content-center">
                             <h5 class="card-title text-muted"><i class="bi bi-person-lines-fill fs-2 mb-2"></i></h5>
-                            <h6 class="card-subtitle mb-2 fw-bold text-muted">F_S03: Relatório de Clientes</h6>
+                            <h6 class="card-subtitle mb-2 fw-bold text-muted">Relatório de Clientes</h6>
                             <p class="card-text small text-muted">(Em breve)</p>
                         </div>
                     </div>
