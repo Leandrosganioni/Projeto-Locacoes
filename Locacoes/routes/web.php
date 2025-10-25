@@ -85,11 +85,16 @@ Route::middleware("auth")->group(function () {
         Route::resource('usuarios', UsuarioController::class); 
         
         
+        // --- ROTAS DE RELATÓRIOS ---
+        
         
         Route::get('/relatorios', [RelatorioController::class, 'index'])->name('relatorios.index');
         
-       
+        
         Route::get('/relatorios/estoque', [RelatorioController::class, 'relatorioEstoque'])->name('relatorios.estoque');
+
+        
+        Route::get('/relatorios/vendas', [RelatorioController::class, 'relatorioVendas'])->name('relatorios.vendas');
     });
 
 });
