@@ -126,7 +126,6 @@ class PedidoController extends Controller
         $series = [];
         foreach ($pedido->itens as $item) {
             // gera série por item utilizando a lógica da model
-            // (Certifique-se que o método breakdownDecorrido exista em PedidoProduto.php)
             $series[$item->id] = $item->breakdownDecorrido();
         }
         // Série agregada: soma os valores por data

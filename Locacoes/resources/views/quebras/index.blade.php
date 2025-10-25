@@ -7,6 +7,20 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0">Registrar Ocorrência</h1>
     </div>
+    
+    <div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Gestão de Equipamentos</h2>
+        <a href="{{ route('quebras.relatorio') }}" class="btn btn-outline-warning">
+            <i class="bi bi-file-earmark-bar-graph"></i> Ver Relatório de Quebras
+        </a>
+    </div>
+    
+    {{-- A tabela de listagem de equipamentos deve vir abaixo daqui --}}
+    <table class="table table-striped">
+        {{-- ... código da tabela ... --}}
+    </table>
+    </div>
 
     <div class="table-responsive">
         <div class="card shadow-sm">
@@ -51,19 +65,15 @@
     document.getElementById('search-form').addEventListener('submit', function(e) {
         e.preventDefault();
         
-        // --- CORREÇÃO AQUI (Parte 2) ---
-        // 1. Pegamos o próprio formulário
+
         const form = e.target; 
         
-        // 2. Pegamos o input
         const input = document.getElementById('pedido_id_input');
         const pedidoId = input.value;
         
         if (pedidoId) {
-            // 3. Lemos a URL direto do atributo 'data-url-template' do formulário
             const urlTemplate = form.dataset.urlTemplate;
 
-            // 4. O resto do seu código funciona perfeitamente
             const finalUrl = urlTemplate.replace('__ID__', pedidoId);
             window.location.href = finalUrl;
         }

@@ -46,6 +46,8 @@ Route::middleware("auth")->group(function () {
     Route::get('/quebras', [QuebraController::class, 'index'])->name('quebras.index');
     Route::get('/quebras/registrar/{pedido_id}', [QuebraController::class, 'create'])->name('quebras.create');
     Route::post('/quebras', [QuebraController::class, 'store'])->name('quebras.store');
+    // Rota para a visualização/relatório de todas as ocorrências de quebra/devolução
+    Route::get('/quebras/relatorio', [QuebraController::class, 'relatorio'])->name('quebras.relatorio');
     //FIM
 
     Route::post("/logout", [AuthController::class, "logout"])->name('logout');

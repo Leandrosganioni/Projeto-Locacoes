@@ -45,12 +45,6 @@ class PedidoItemController extends Controller
         ])->count();
 
         if ($ativos === 0) {
-            // Quando não há itens ativos, o pedido está encerrado. Se desejar
-            // registrar um status, adicione uma coluna 'status' na tabela
-            // 'pedidos' e atualize aqui. Caso contrário, apenas mantenha o
-            // fechamento lógico baseado na contagem de itens.
-            // $pedido->status = 'fechado';
-            // $pedido->save();
         }
     }
 }

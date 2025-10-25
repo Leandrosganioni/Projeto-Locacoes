@@ -40,10 +40,8 @@ class EquipamentoController extends Controller
             'informacoes_manutencao',
         ]);
 
-        // disponibilidade inicial = total
         $data['quantidade_disponivel'] = (int)$request->quantidade_total;
 
-        // legado (se a coluna 'quantidade' existir, mantém espelhado)
         if (\Schema::hasColumn('equipamentos', 'quantidade')) {
             $data['quantidade'] = (int)$request->quantidade_total;
         }
@@ -94,8 +92,6 @@ class EquipamentoController extends Controller
             'informacoes_manutencao',
         ]);
 
-        // NÃO mexe em quantidade_disponivel aqui (é controlado por reservas/retiradas/devoluções).
-        // Apenas mantém a coluna legado 'quantidade' sincronizada, se existir.
         if (\Schema::hasColumn('equipamentos', 'quantidade')) {
             $data['quantidade'] = (int)$request->quantidade_total;
         }
@@ -123,7 +119,6 @@ class EquipamentoController extends Controller
 
     public function destroy(Equipamento $equipamento)
     {
-        // apaga arquivo físico, se existir
         if ($equipamento->imagem) {
             $path = public_path('images/equipamentos/'. $equipamento->imagem);
             if (is_file($path)) @unlink($path);

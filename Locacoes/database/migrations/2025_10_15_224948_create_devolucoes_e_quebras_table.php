@@ -19,8 +19,8 @@ return new class extends Migration
             $table->foreignId('material_id')->constrained('equipamentos');
             $table->integer('quantidade');
             $table->text('motivo');
-            $table->string('tipo'); // 'quebra' ou 'devolucao'
-            $table->string('status')->nullable(); // Ex: 'substituido', 'descartado'
+            $table->string('tipo');
+            $table->string('status')->nullable();
             $table->decimal('custo_reparacao', 8, 2)->nullable();
             $table->timestamps();
         });
