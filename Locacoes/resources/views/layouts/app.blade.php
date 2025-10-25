@@ -48,7 +48,7 @@
                         </li>
                         
                         <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center gap-1 {{ request()->routeIs('relatorios.*') ? 'active text-primary fw-semibold' : '' }}" href="{{ route('relatorios.estoque') }}">
+                            <a class="nav-link d-flex align-items-center gap-1 {{ request()->routeIs('relatorios.*') ? 'active text-primary fw-semibold' : '' }}" href="{{ route('relatorios.index') }}">
                                 <i class="bi bi-file-earmark-bar-graph"></i> Relatórios
                             </a>
                         </li>
