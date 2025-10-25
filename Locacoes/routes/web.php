@@ -8,6 +8,7 @@ use App\Http\Controllers\EquipamentoController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\PedidoController;
 use App\Http\Controllers\PedidoItemController;
+use App\Http\Controllers\RelatorioController; 
 use App\Models\Cliente;
 use App\Models\Equipamento;
 use App\Models\Pedido;
@@ -30,8 +31,8 @@ Route::middleware("auth")->group(function () {
 
         if ($user->role === 'cliente') {
             $equipamentosDisponiveis = Equipamento::where('quantidade_disponivel', '>', 0)
-                                                ->orderBy('nome')
-                                                ->get(['id', 'nome', 'imagem', 'daily_rate']);
+                                                 ->orderBy('nome')
+                                                 ->get(['id', 'nome', 'imagem', 'daily_rate']);
             return view('index_cliente', compact('equipamentosDisponiveis'));
         }
 
@@ -49,7 +50,6 @@ Route::middleware("auth")->group(function () {
 
     Route::middleware('role:funcionario,admin')->group(function () {
         
-
         Route::resource("clientes", ClienteController::class);
         Route::resource('equipamentos', EquipamentoController::class);
 
@@ -72,7 +72,6 @@ Route::middleware("auth")->group(function () {
 
     Route::middleware('role:cliente,funcionario,admin')->group(function () {
         
-
         Route::get('pedidos', [PedidoController::class, 'index'])->name('pedidos.index');
         Route::get('pedidos/{pedido}', [PedidoController::class, 'show'])->name('pedidos.show'); 
         Route::get('pedidos/{pedido}/decorridos', [PedidoController::class, 'decorridos'])->name('pedidos.decorridos');
@@ -84,6 +83,9 @@ Route::middleware("auth")->group(function () {
     Route::middleware('role:admin')->group(function () {
         Route::resource('funcionarios', FuncionarioController::class);
         Route::resource('usuarios', UsuarioController::class); 
+        
+        
+        Route::get('/relatorios/estoque', [RelatorioController::class, 'relatorioEstoque'])->name('relatorios.estoque');
     });
 
 });
