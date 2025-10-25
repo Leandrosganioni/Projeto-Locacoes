@@ -6,7 +6,7 @@
 <div class="container py-5">
 
     <div class="bg-white shadow rounded p-4 p-md-5"> <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
-            <h2 class="mb-0 fw-semibold">F_S01: Relação do Estoque</h2>
+            <h2 class="mb-0 fw-semibold">Relação do Estoque</h2>
             <a href="{{ route('relatorios.index') }}" class="btn btn-outline-secondary btn-sm mt-2 mt-md-0">
                 <i class="bi bi-arrow-left"></i> Voltar para Central
             </a>
