@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title') - ELoc Locações</title>
-    {{-- A classe Auth será usada para verificar os papéis --}}
+    
     @php
         use Illuminate\Support\Facades\Auth;
     @endphp
@@ -28,9 +28,9 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto gap-2">
 
-                    {{-- --- Documentação (Links Dinâmicos) --- --}}
+                    
 
-                    {{-- Link Clientes: Visível apenas para Funcionários e Admins --}}
+                    
                     @if(in_array(Auth::user()->role, ['funcionario', 'admin']))
                         <li class="nav-item">
                             <a class="nav-link d-flex align-items-center gap-1 {{ request()->routeIs('clientes.*') ? 'active text-primary fw-semibold' : '' }}" href="{{ route('clientes.index') }}">
@@ -39,16 +39,22 @@
                         </li>
                     @endif
 
-                    {{-- Link Funcionários: Visível apenas para Admins --}}
+                    
                     @if(Auth::user()->role === 'admin')
                         <li class="nav-item">
                             <a class="nav-link d-flex align-items-center gap-1 {{ request()->routeIs('funcionarios.*') ? 'active text-primary fw-semibold' : '' }}" href="{{ route('funcionarios.index') }}">
                                 <i class="bi bi-person-badge"></i> Funcionários
                             </a>
                         </li>
-                    @endif
+                        
+                        <li class="nav-item">
+                            <a class="nav-link d-flex align-items-center gap-1 {{ request()->routeIs('relatorios.*') ? 'active text-primary fw-semibold' : '' }}" href="{{ route('relatorios.estoque') }}">
+                                <i class="bi bi-file-earmark-bar-graph"></i> Relatórios
+                            </a>
+                        </li>
+                        @endif
 
-                    {{-- Link Equipamentos: Visível apenas para Funcionários e Admins --}}
+                    
                     @if(in_array(Auth::user()->role, ['funcionario', 'admin']))
                         <li class="nav-item">
                             <a class="nav-link d-flex align-items-center gap-1 {{ request()->routeIs('equipamentos.*') ? 'active text-primary fw-semibold' : '' }}" href="{{ route('equipamentos.index') }}">
@@ -57,23 +63,21 @@
                         </li>
                     @endif
                     
-                    {{-- Link Pedidos: Visível para Todos (Clientes, Funcionários, Admins) --}}
+                    
                     <li class="nav-item">
                         <a class="nav-link d-flex align-items-center gap-1 {{ request()->routeIs('pedidos.*') ? 'active text-primary fw-semibold' : '' }}" href="{{ route('pedidos.index') }}">
                             <i class="bi bi-box"></i> Pedidos
                         </a>
                     </li>
 
-                    {{-- O link 'Cadastrar Usuário' foi removido pois a criação de usuários
-                         agora está integrada ao cadastro de funcionários (para admins)
-                         e clientes (para funcionários/admins). --}}
+                    
                 </ul>
 
-                {{-- Dropdown do Usuário (Visível para todos logados) --}}
+                
                 <div class="dropdown ms-3">
                     <button class="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-1 rounded-pill" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Abrir menu de usuário">
                         <i class="bi bi-person-circle fs-5"></i>
-                        {{-- Exibe o nome do usuário logado --}}
+                        
                         <span class="fw-medium">{{ Auth::user()->name }}</span>
                         <i class="bi bi-caret-down-fill"></i>
                     </button>
@@ -102,10 +106,10 @@
         </div>
     </nav>
 
-    {{-- Conteúdo principal --}}
+    
     <main class="container py-4 flex-grow-1">
         
-        {{-- Exibe a mensagem de erro do middleware (Acesso não autorizado) --}}
+        
         @if(session('error'))
             <div class="alert alert-danger">
                 {{ session('error') }}
@@ -115,7 +119,7 @@
         @yield('content')
     </main>
 
-    {{-- Rodapé --}}
+    
     <footer class="text-center py-4 bg-transparent text-muted small">
         <div class="container">
             <p class="mb-0">&copy; {{ date('Y') }} ELoc Rentals. All rights reserved.</p>
