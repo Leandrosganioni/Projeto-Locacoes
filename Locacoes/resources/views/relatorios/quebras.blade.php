@@ -11,7 +11,7 @@
 
         {{-- Cabeçalho com título e botão de voltar --}}
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
-            <h2 class="mb-0 fw-semibold"><i class="bi bi-heartbreak-fill me-2 text-warning"></i> Relatório de Quebras e Devoluções</h2>
+            <h2 class="mb-0 fw-semibold">Relatório de Quebras e Devoluções</h2>
             <a href="{{ route('relatorios.index') }}" class="btn btn-outline-secondary btn-sm mt-2 mt-md-0">
                 <i class="bi bi-arrow-left"></i> Voltar para Central
             </a>

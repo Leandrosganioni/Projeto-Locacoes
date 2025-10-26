@@ -139,13 +139,16 @@
                         </div>
                     </div>
 
-                    <div class="row mt-4">
-                        <div class="col-md-12 text-right">
-                            <a href="{{ route('equipamentos.index') }}" class="btn btn-secondary">Cancelar</a>
-                            <button type="submit" class="btn btn-danger">
-                                <i class="fas fa-save"></i> Registrar Ocorrência e Atualizar Estoque
-                            </button>
-                        </div>
+                    <div class="mt-4 d-flex justify-content-end gap-2">
+                        {{-- Botão Cancelar (cinza claro) --}}
+                        <a href="{{ route('equipamentos.index') }}" class="btn btn-outline-secondary">
+                             <i class="bi bi-x-circle me-1"></i> Cancelar
+                        </a>
+                        {{-- Botão Salvar (azul) --}}
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i> Registrar Ocorrência
+                        </button>
+                        {{-- Mudei o texto para ficar mais curto como nos outros forms --}}
                     </div>
 
                 </form>
