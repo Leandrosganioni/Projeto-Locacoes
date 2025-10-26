@@ -63,12 +63,7 @@
                             <i class="bi bi-box"></i> Pedidos
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center gap-1 {{ request()->routeIs('quebras.*') ? 'active text-primary fw-semibold' : '' }}" href="{{ route('quebras.index') }}">
-                            <i class="bi bi-wrench-adjustable"></i> Reg. Quebra
-                        </a>
-                    </li>
-                
+
                     {{-- O link 'Cadastrar Usuário' foi removido pois a criação de usuários
                          agora está integrada ao cadastro de funcionários (para admins)
                          e clientes (para funcionários/admins). --}}

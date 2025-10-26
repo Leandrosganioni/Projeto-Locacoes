@@ -2,51 +2,92 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Relations\Pivot; 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log; 
 
-class PedidoProduto extends Pivot 
+class PedidoProduto extends Model
 {
-    use HasFactory;
+    protected $table = 'pedido_produto';
 
     protected $fillable = [
-        'pedido_id', 
-        'equipamento_id', 
-        'quantidade', 
-        'status', 
-        'daily_rate_snapshot'
+        'pedido_id',
+        'equipamento_id',
+        'quantidade',
+        'status',
+        'daily_rate_snapshot',
+        'start_at',
+        'end_at',
+        'computed_total',
+        'calc_breakdown_json',
     ];
 
-    const STATUS_RESERVADO = 'reservado';
-    const STATUS_DEVOLVIDO = 'devolvido';
-    const STATUS_EM_LOCACAO = 'em_locacao';
-    const STATUS_CANCELADO = 'cancelado';
-    
-    public function equipamento()
-    {
-        return $this->belongsTo(Equipamento::class, 'equipamento_id');
-    }
+    protected $casts = [
+        'start_at' => 'datetime',
+        'end_at'   => 'datetime',
+        'computed_total' => 'decimal:2',
+        'calc_breakdown_json' => 'array',
+    ];
+
+    public const STATUS_RESERVADO  = 'reservado';
+    public const STATUS_EM_LOCACAO = 'em_locacao';
+    public const STATUS_DEVOLVIDO  = 'devolvido';
+    public const STATUS_CANCELADO  = 'cancelado';
 
     public function pedido()
     {
-        return $this->belongsTo(Pedido::class, 'pedido_id');
+        return $this->belongsTo(Pedido::class);
+    }
+
+    public function equipamento()
+    {
+        return $this->belongsTo(Equipamento::class);
+    }
+
+    // Ao criar o item (reserva)
+    public function reservar(): bool
+    {
+        if ($this->status !== self::STATUS_RESERVADO) return false;
+
+        $eq = $this->equipamento;
+        if (!$eq || !$eq->reservar((int)$this->quantidade)) return false;
+
+        // Congela o preço do dia no momento da reserva
+        $this->daily_rate_snapshot = $eq->daily_rate ?? 0;
+
+        return $this->save();
     }
 
     //iniciar a locação (retirada)
     public function retirar(): bool
     {
-        return $this->belongsTo(Pedido::class, 'pedido_id');
+        if ($this->status !== self::STATUS_RESERVADO) return false;
+
+        $this->status   = self::STATUS_EM_LOCACAO;
+        $this->start_at = Carbon::now();
+
+        $this->equipamento?->retirar((int)$this->quantidade);
+
+        return $this->save();
     }
 
-    public function reservar(): bool
+    // Devolve e calcula o valor
+    public function devolver(): bool
     {
-        $equip = $this->equipamento; // Carrega o equipamento
-        if (!$equip) return false;
-        
-        return $equip->reservar($this->quantidade);
+        if ($this->status !== self::STATUS_EM_LOCACAO) return false;
+
+        $this->end_at = Carbon::now();
+
+        $calc = $this->calcularValor(); // ['total'=>..., 'detalhe'=>...]
+        $this->computed_total      = $calc['total'];
+        $this->calc_breakdown_json = $calc['detalhe']; // cast cuida do JSON
+
+        $this->status = self::STATUS_DEVOLVIDO;
+
+        // Libera estoque
+        $this->equipamento?->devolver((int)$this->quantidade);
+
+        return $this->save();
     }
 
     //cancelar reserva antes de retirar

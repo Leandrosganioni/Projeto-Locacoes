@@ -37,7 +37,6 @@
     <div class="bg-white shadow rounded p-4 mb-4">
         <h5 class="fw-semibold mb-3 border-bottom pb-2">Informações do Pedido</h5>
         <dl class="row mb-0">
-
             <dt class="col-sm-3">Cliente</dt>
             <dd class="col-sm-9">{{ $pedido->cliente->nome }}</dd>
 

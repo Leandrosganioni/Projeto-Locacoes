@@ -7,7 +7,6 @@ use App\Http\Controllers\FuncionarioController;
 use App\Http\Controllers\EquipamentoController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\PedidoController;
-use App\Http\Controllers\QuebraController;
 use App\Http\Controllers\PedidoItemController;
 use App\Models\Cliente;
 use App\Models\Equipamento;
@@ -43,14 +42,6 @@ Route::middleware("auth")->group(function () {
 
     })->name('index');
 
-
-    // --- ROTAS DE QUEBRA E DEVOLUÇÃO ---
-    Route::get('/quebras', [QuebraController::class, 'index'])->name('quebras.index');
-    Route::get('/quebras/registrar/{pedido_id}', [QuebraController::class, 'create'])->name('quebras.create');
-    Route::post('/quebras', [QuebraController::class, 'store'])->name('quebras.store');
-    // Rota para a visualização/relatório de todas as ocorrências de quebra/devolução
-    Route::get('/quebras/relatorio', [QuebraController::class, 'relatorio'])->name('quebras.relatorio');
-    //FIM
 
     Route::post("/logout", [AuthController::class, "logout"])->name('logout');
 

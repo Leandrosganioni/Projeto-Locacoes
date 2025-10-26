@@ -19,20 +19,6 @@
         <div class="alert alert-danger">{{ session('error') }}</div>
         @endif
 
-        <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Gestão de Equipamentos</h2>
-        <a href="{{ route('quebras.relatorio') }}" class="btn btn-outline-warning">
-            <i class="bi bi-file-earmark-bar-graph"></i> Ver Relatório de Quebras
-        </a>
-    </div>
-    
-    {{-- A tabela de listagem de equipamentos deve vir abaixo daqui --}}
-    <table class="table table-striped">
-        {{-- ... código da tabela ... --}}
-    </table>
-        </div>
-
         <div class="table-responsive">
             <table id="equipamentos-table" class="table table-striped table-hover align-middle">
                 <thead class="table-dark">
