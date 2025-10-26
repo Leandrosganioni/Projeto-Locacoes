@@ -26,7 +26,7 @@
                         <th style="width:100px;">Imagem</th>
                         <th>Nome</th>
                         <th>Tipo</th>
-                        <th class="text-center">Estoque (Disp/Total)</th>
+                        <th class="text-center">Estoque (Disp/Total) [Quebrado]</th>
                         <th>Diária</th>
                         <th class="text-center">Ações</th>
                     </tr>
@@ -43,7 +43,16 @@
                         </td>
                         <td>{{ $equipamento->nome }}</td>
                         <td>{{ $equipamento->tipo }}</td>
-                        <td class="text-center">{{ $equipamento->quantidade_disponivel }} / {{ $equipamento->quantidade_total }}</td>
+                        <td class="text-center">
+                            {{ $equipamento->quantidade_disponivel }} / {{ $equipamento->quantidade_total }}
+
+                            {{-- Adiciona a "tag" vermelha se houver itens quebrados --}}
+                            @if($equipamento->quantidade_quebrada > 0)
+                                <span class="badge bg-danger ms-1" title="Itens quebrados/em manutenção">
+                                    {{ $equipamento->quantidade_quebrada }}
+                                </span>
+                            @endif
+                        </td>                       
                         <td>R$ {{ number_format($equipamento->daily_rate, 2, ',', '.') }}</td>
                         <td class="text-center">
                             <a href="{{ route('equipamentos.show', $equipamento->id) }}" class="btn btn-sm btn-outline-info me-1">
@@ -52,6 +61,17 @@
                             <a href="{{ route('equipamentos.edit', $equipamento->id) }}" class="btn btn-sm btn-outline-warning me-1">
                                 <i class="bi bi-pencil"></i>
                             </a>
+                            </a>
+
+                            {{-- =================================== --}}
+                            {{--  BOTÃO DE QUEBRA CORRIGIDO        --}}
+                            {{-- =================================== --}}
+                            {{-- Troquei 'btn-warning' por 'btn-outline-warning' e 'mr-1' por 'me-1' --}}
+                            <a href="{{ route('ocorrencias.create', $equipamento->id) }}" class="btn btn-sm btn-outline-warning me-1" title="Registrar Quebra/Devolução">
+                                {{-- Usei bi-heartbreak como alternativa, ver nota abaixo --}}
+                                <i class="bi bi-heartbreak"></i>
+                            </a>
+                            {{-- =================================== --}}
                             <form action="{{ route('equipamentos.destroy', $equipamento->id) }}" method="POST" class="d-inline">
                                 @csrf
                                 @method('DELETE')
@@ -64,7 +84,7 @@
                     @empty
                     <tr>
                         <td class="text-center">-</td>
-                        <td class="text-center"></td>
+                        <td class="text-center">-</td>
                         <td class="text-center">-</td>
                         <td class="text-center">-</td>
                         <td class="text-center">-</td>

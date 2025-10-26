@@ -34,12 +34,14 @@
             </div>
 
             <div class="col-md-4">
-                 <a href="#" class="text-decoration-none pe-none" tabindex="-1" aria-disabled="true">
-                    <div class="card h-100 border-0 bg-light">
+                {{-- Link aponta para a rota 'relatorios.quebras' que criamos --}}
+                <a href="{{ route('relatorios.quebras') }}" class="text-decoration-none">
+                    <div class="card h-100 shadow-sm border-0 card-hover">
                         <div class="card-body text-center p-4 d-flex flex-column justify-content-center">
-                            <h5 class="card-title text-muted"><i class="bi bi-person-lines-fill fs-2 mb-2"></i></h5>
-                            <h6 class="card-subtitle mb-2 fw-bold text-muted">F_S03: Relatório de Clientes</h6>
-                            <p class="card-text small text-muted">(Em breve)</p>
+                            {{-- Ícone e cor podem ser ajustados (usei warning/laranja) --}}
+                            <h5 class="card-title text-warning"><i class="bi bi-heartbreak fs-2 mb-2"></i></h5>
+                            <h6 class="card-subtitle mb-2 fw-bold">Relatório de Quebras</h6>
+                            <p class="card-text small text-muted">Histórico de quebras e devoluções registradas.</p>
                         </div>
                     </div>
                 </a>

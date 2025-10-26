@@ -53,6 +53,17 @@ Route::middleware("auth")->group(function () {
         Route::resource("clientes", ClienteController::class);
         Route::resource('equipamentos', EquipamentoController::class);
 
+        //rotas para quebras e devoluções de funcionario e admin
+        Route::get('/ocorrencias/registrar/{equipamento}', [\App\Http\Controllers\OcorrenciaEstoqueController::class, 'create'])
+         ->name('ocorrencias.create');
+
+        Route::post('/ocorrencias', [\App\Http\Controllers\OcorrenciaEstoqueController::class, 'store'])
+         ->name('ocorrencias.store');
+
+        // Rota para API interna (buscar pedidos do cliente via JS)
+        Route::get('/api/clientes/{cliente}/pedidos', [\App\Http\Controllers\ClienteController::class, 'getPedidosPorCliente'])
+         ->name('api.clientes.pedidos');
+        //fim da rota de quebra
 
         Route::get('pedidos/create', [PedidoController::class, 'create'])->name('pedidos.create');
         Route::post('pedidos', [PedidoController::class, 'store'])->name('pedidos.store');
@@ -83,6 +94,8 @@ Route::middleware("auth")->group(function () {
     Route::middleware('role:admin')->group(function () {
         Route::resource('funcionarios', FuncionarioController::class);
         Route::resource('usuarios', UsuarioController::class); 
+        Route::get('/relatorios/quebras', [\App\Http\Controllers\RelatorioController::class, 'relatorioQuebras'])
+            ->name('relatorios.quebras');
         
         
         // --- ROTAS DE RELATÓRIOS ---

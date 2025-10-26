@@ -16,6 +16,7 @@ class Equipamento extends Model
         'daily_rate',
         'quantidade_total',
         'quantidade_disponivel',
+        'quantidade_quebrada',
     ];
 
     public static function consultarEstoque()

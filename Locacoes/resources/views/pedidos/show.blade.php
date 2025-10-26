@@ -7,7 +7,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h2 class="mb-0">Detalhes do Pedido #{{ $pedido->id }}</h2>
         <div class="d-flex flex-wrap gap-2">
-            
+
 
             @if(Auth::user()->role !== 'cliente')
                 <a href="{{ route('pedidos.edit', $pedido->id) }}" class="btn btn-outline-warning">
@@ -93,6 +93,7 @@
                     <td>{{ $item->end_at ? $item->end_at->format('d/m/Y H:i') : '-' }}</td>
                     <td class="text-end">{{ number_format($item->daily_rate_snapshot, 2, ',', '.') }}</td>
                     <td class="text-end">
+                        {{-- CORREÇÃO: Usando a variável $item para acessar o computed_total --}}
                         @if($item->status === App\Models\PedidoProduto::STATUS_DEVOLVIDO)
                             {{ number_format($item->computed_total, 2, ',', '.') }}
                         @else
@@ -101,8 +102,9 @@
                     </td>
                     {{-- Mostra ações apenas para funcionários e admins --}}
                     @if(Auth::user()->role !== 'cliente')
-                    <td class="text-center">
+                    <td class="text-center"> {{-- Célula de Ações CORRETA --}}
                         <div class="d-flex flex-wrap justify-content-center gap-1">
+                            {{-- Botões condicionais --}}
                             @if($item->status === App\Models\PedidoProduto::STATUS_RESERVADO)
                                 <form method="POST" action="{{ route('pedidos.itens.retirar', $item->id) }}" class="d-inline">
                                     @csrf
@@ -124,10 +126,24 @@
                                     </button>
                                 </form>
                             @else
-                                <span class="text-muted">-</span>
+                                {{-- Se não estiver reservado nem em locação, pode não ter ação ou apenas a de quebra --}}
+                                {{-- <span class="text-muted">-</span> --}}
                             @endif
+
+                            {{-- =================================== --}}
+                            {{--  BOTÃO DE DEVOLUÇÃO MOVIDO PARA CÁ --}}
+                            {{-- =================================== --}}
+                            {{-- CORREÇÃO: Usando a variável $item para acessar o id do equipamento --}}
+                            <a href="{{ route('ocorrencias.create', ['equipamento' => $item->equipamento->id, 'pedido_id' => $pedido->id, 'cliente_id' => $pedido->cliente_id]) }}"
+                                class="btn btn-sm btn-outline-warning"
+                                title="Registrar Devolução com Quebra/Defeito">
+                                <i class="bi bi-heartbreak"></i>
+                            </a>
+                            {{-- =================================== --}}
+
                         </div>
                     </td>
+                    {{-- REMOVIDA A TD EXTRA QUE ESTAVA AQUI --}}
                     @endif
                 </tr>
                 @empty
