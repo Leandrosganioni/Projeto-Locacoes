@@ -161,4 +161,15 @@ class ClienteController extends Controller
                 ->with('error', 'Erro ao excluir cliente: ' . $e->getMessage());
         }
     }
+    public function getPedidosPorCliente(Cliente $cliente)
+    {
+    // Usamos a relação 'pedidos' definida no Model Cliente
+    //
+        $pedidos = $cliente->pedidos()
+                      ->orderBy('created_at', 'desc') // <-- Corrigido para created_at (ou data_entrega)
+                      ->select('id', 'data_entrega') // <-- Seleciona data_entrega para exibir
+                      ->get();
+
+    return response()->json($pedidos);
+    }
 }

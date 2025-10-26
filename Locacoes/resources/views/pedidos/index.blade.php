@@ -74,7 +74,11 @@
                     @empty
                     <tr>
                         {{-- Ajusta o número de colunas vazias dependendo do papel --}}
-                        <td colspan="{{ Auth::user()->role !== 'cliente' ? 5 : 4 }}" class="text-center text-muted py-3">Nenhum pedido encontrado.</td>
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
                     </tr>
                     @endforelse
                 </tbody>
