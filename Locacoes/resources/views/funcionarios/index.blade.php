@@ -34,8 +34,8 @@
                 @forelse($funcionarios as $funcionario)
                 <tr>
                     <td>{{ $funcionario->nome }}</td>
-                    <td>{{ $funcionario->cpf }}</td>
-                    <td>{{ $funcionario->telefone }}</td>
+                    <td>{{ $funcionario->cpf_formatado }}</td>
+                    <td>{{ $funcionario->telefone_formatado }}</td>
                     <td class="text-center">
                         <a href="{{ route('funcionarios.show', $funcionario->id) }}" class="btn btn-sm btn-outline-info me-1">
                             <i class="bi bi-eye"></i>

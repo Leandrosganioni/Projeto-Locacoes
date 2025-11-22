@@ -34,8 +34,8 @@
                     @forelse($clientes as $cliente)
                     <tr>
                         <td>{{ $cliente->nome }}</td>
-                        <td>{{ $cliente->cpf }}</td>
-                        <td>{{ $cliente->telefone }}</td>
+                        <td>{{ $cliente->cpf_cnpj_formatado }}</td>
+                        <td>{{ $cliente->telefone_formatado }}</td>
                         <td class="text-center">
                             <a href="{{ route('clientes.show', $cliente->id) }}" class="btn btn-sm btn-outline-info me-1">
                                 <i class="bi bi-eye"></i>
