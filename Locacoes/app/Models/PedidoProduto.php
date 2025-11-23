@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Log; 
+use Illuminate\Support\Facades\Log;
 
 class PedidoProduto extends Model
 {
@@ -44,7 +44,6 @@ class PedidoProduto extends Model
         return $this->belongsTo(Equipamento::class);
     }
 
-    // Ao criar o item (reserva)
     public function reservar(): bool
     {
         if ($this->status !== self::STATUS_RESERVADO) return false;
@@ -52,13 +51,11 @@ class PedidoProduto extends Model
         $eq = $this->equipamento;
         if (!$eq || !$eq->reservar((int)$this->quantidade)) return false;
 
-        // Congela o preço do dia no momento da reserva
         $this->daily_rate_snapshot = $eq->daily_rate ?? 0;
 
         return $this->save();
     }
 
-    //iniciar a locação (retirada)
     public function retirar(): bool
     {
         if ($this->status !== self::STATUS_RESERVADO) return false;
@@ -71,26 +68,23 @@ class PedidoProduto extends Model
         return $this->save();
     }
 
-    // Devolve e calcula o valor
     public function devolver(): bool
     {
         if ($this->status !== self::STATUS_EM_LOCACAO) return false;
 
         $this->end_at = Carbon::now();
 
-        $calc = $this->calcularValor(); // ['total'=>..., 'detalhe'=>...]
+        $calc = $this->calcularValor();
         $this->computed_total      = $calc['total'];
-        $this->calc_breakdown_json = $calc['detalhe']; // cast cuida do JSON
+        $this->calc_breakdown_json = $calc['detalhe'];
 
         $this->status = self::STATUS_DEVOLVIDO;
 
-        // Libera estoque
         $this->equipamento?->devolver((int)$this->quantidade);
 
         return $this->save();
     }
 
-    //cancelar reserva antes de retirar
     public function cancelar(): bool
     {
         if ($this->status !== self::STATUS_RESERVADO) return false;
@@ -104,19 +98,16 @@ class PedidoProduto extends Model
         return $ok;
     }
 
-    // rule: melhor preço entre diária/semana/mês, com carência de 2h e mínimo 1 diária
     protected function calcularValor(): array
     {
         $start = Carbon::parse($this->start_at);
         $end   = Carbon::parse($this->end_at);
 
-        // Carência de 2h
         $duracaoMin = $start->copy()->addHours(2);
 
         if ($end->lessThanOrEqualTo($duracaoMin)) {
             $diasCobrados = 1;
         } else {
-            // fix: abs() para garantir que a diferença de horas é positiva
             $diffHoras    = abs($end->floatDiffInHours($start));
             
             $diasCobrados = (int) ceil($diffHoras / 24);
@@ -127,7 +118,6 @@ class PedidoProduto extends Model
         $rateSem = (float)($this->equipamento?->weekly_rate ?? ($rateDia * 7 * 0.90));
         $rateMes = (float)($this->equipamento?->monthly_rate ?? ($rateDia * 30 * 0.80));
 
-        //“best price”
         $resto   = $diasCobrados;
         $meses   = intdiv($resto, 30); $resto   -= $meses * 30;
         $semanas = intdiv($resto, 7);  $resto   -= $semanas * 7;
@@ -150,13 +140,12 @@ class PedidoProduto extends Model
         ];
     }
 
-    /**
-     * Gera uma série dia-a-dia de valores decorridos para este item.
-     
-     */
     public function breakdownDecorrido(?\DateTimeInterface $ate = null): array
     {
-        
+        if ($this->status === self::STATUS_CANCELADO) {
+            return [];
+        }
+
         $start = $this->start_at ?? $this->created_at ?? Carbon::now();
         
         if ($this->status === self::STATUS_DEVOLVIDO) {
@@ -185,14 +174,12 @@ class PedidoProduto extends Model
 
             $minutes = 0;
             if ($intervalEnd->gt($intervalStart)) {
-                
                 $minutes = abs($intervalEnd->diffInMinutes($intervalStart));
             }
 
             $horas   = $minutes / 60.0;
             $horas   = max(0.0, min($horas, 24.0)); 
 
-            // Parcela proporcional ao valor diário
             $parcela = ($horas / 24.0) * $rateDia * $qtd;
             $acumulado += $parcela;
             $series[] = [
@@ -205,7 +192,6 @@ class PedidoProduto extends Model
             $current->addDay();
         }
 
-        // Se item devolvido, ajusta a distribuição utilizando o valor final
         if ($this->status === self::STATUS_DEVOLVIDO && $this->computed_total !== null) {
             $finalTotal = (float) $this->computed_total;
 
@@ -214,7 +200,6 @@ class PedidoProduto extends Model
                 $totalHours += (float)($linha['horas'] ?? 0);
             }
 
-            // Ajusta parcelas proporcionalmente às horas de cada dia
             if ($totalHours > 0.0) {
                 $acumuladoTmp = 0.0;
                 foreach ($series as $idx => $linha) {
@@ -222,9 +207,8 @@ class PedidoProduto extends Model
                     $series[$idx]['parcela'] = round($alloc, 2);
                     $acumuladoTmp += $alloc;
                     $series[$idx]['acumulado'] = round($acumuladoTmp, 2);
-                    $series[$idx]['regra'] = 'consolidado'; // Define como consolidado
+                    $series[$idx]['regra'] = 'consolidado';
                 }
-                // Ajusta eventual diferença de arredondamento no último dia
                 $diff = round($finalTotal - $acumuladoTmp, 2);
                 if (abs($diff) > 0.01 && count($series) > 0) {
                     $lastIndex = count($series) - 1;
@@ -232,7 +216,6 @@ class PedidoProduto extends Model
                     $series[$lastIndex]['acumulado'] = round($finalTotal, 2);
                 }
             } else {
-                // (Este 'else' não deve mais ser atingido, mas fica como segurança)
                 $lastIndex = count($series) - 1;
                 if ($lastIndex >= 0) {
                     $series[$lastIndex]['parcela'] = round($finalTotal, 2);
@@ -244,12 +227,8 @@ class PedidoProduto extends Model
         return $series;
     }
 
-    /**
-     * Altera a quantidade de um item reservado...
-     */
     public function alterarQuantidade(int $novaQuantidade): bool
     {
-        // só é permitido alterar quando está reservado
         if ($this->status !== self::STATUS_RESERVADO) {
             return false;
         }
@@ -262,13 +241,12 @@ class PedidoProduto extends Model
         if (!$equipamento) {
             return false;
         }
-        // se aumentar a quantidade, tentar reservar o adicional
+        
         if ($dif > 0) {
             if (!$equipamento->reservar($dif)) {
                 return false;
             }
         } else {
-            // se reduzir, liberar o estoque excedente
             $equipamento->liberar(-$dif);
         }
         $this->quantidade = $novaQuantidade;

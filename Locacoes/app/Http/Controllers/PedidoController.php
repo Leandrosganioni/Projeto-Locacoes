@@ -8,7 +8,7 @@ use App\Models\Cliente;
 use App\Models\Funcionario;
 use App\Models\Equipamento;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth; // <-- Adicionado: Para acessar o usuário logado
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class PedidoController extends Controller
@@ -18,12 +18,11 @@ class PedidoController extends Controller
         $user = Auth::user();
         $query = Pedido::with(['cliente', 'funcionario']);
 
-        // Filtra pedidos se o usuário for cliente
         if ($user->role === 'cliente') {
             $query->where('cliente_id', $user->cliente_id);
         }
 
-        $pedidos = $query->orderBy('created_at', 'desc')->get(); // Ordenar por mais recente
+        $pedidos = $query->orderBy('created_at', 'desc')->get();
 
         return view('pedidos.index', compact('pedidos'));
     }
@@ -31,9 +30,9 @@ class PedidoController extends Controller
     public function create()
     {
         return view('pedidos.create', [
-            'clientes' => Cliente::orderBy('nome')->get(), // Ordenar clientes
-            'funcionarios' => Funcionario::orderBy('nome')->get(), // Ordenar funcionários
-            'produtos' => Equipamento::where('quantidade_disponivel', '>', 0)->orderBy('nome')->get() // Apenas disponíveis e ordenados
+            'clientes' => Cliente::orderBy('nome')->get(),
+            'funcionarios' => Funcionario::orderBy('nome')->get(),
+            'produtos' => Equipamento::where('quantidade_disponivel', '>', 0)->orderBy('nome')->get()
         ]);
     }
 
@@ -59,9 +58,11 @@ class PedidoController extends Controller
                 'data_entrega' => $request->data_entrega
             ]);
 
-            // Verifica disponibilidade
+
             foreach ($request->produtos as $equipamento_id) {
-                $quantidade = (int)($request->quantidades[$equipamento_id] ?? 0);
+                $quantidadeTotal = (int)($request->quantidades[$equipamento_id] ?? 0);
+                if ($quantidadeTotal <= 0) continue;
+
                 $equipamento = Equipamento::find($equipamento_id);
                 $nome = $equipamento ? $equipamento->nome : "ID {$equipamento_id}";
 
@@ -70,30 +71,32 @@ class PedidoController extends Controller
                     return redirect()->back()->with('error', "Equipamento não encontrado: {$nome}.")->withInput();
                 }
 
-                if ($equipamento->quantidade_disponivel < $quantidade) {
+                if ($equipamento->quantidade_disponivel < $quantidadeTotal) {
                     DB::rollBack();
                     return redirect()->back()->with('error', "Estoque insuficiente para {$nome}. Disponível: {$equipamento->quantidade_disponivel}.")->withInput();
                 }
             }
 
-            // Cria item e reserva estoque
+
             foreach ($request->produtos as $equipamento_id) {
-                $quantidade  = (int)($request->quantidades[$equipamento_id] ?? 0);
-                if ($quantidade <= 0) continue; // Pula se quantidade for inválida
+                $quantidadeTotal = (int)($request->quantidades[$equipamento_id] ?? 0);
+                
+                $equipamento = Equipamento::find($equipamento_id);
 
-                $equipamento = Equipamento::find($equipamento_id); // Já sabemos que existe
 
-                $item = PedidoProduto::create([
-                    'pedido_id'           => $pedido->id,
-                    'equipamento_id'      => $equipamento_id,
-                    'quantidade'          => $quantidade,
-                    'status'              => PedidoProduto::STATUS_RESERVADO,
-                    'daily_rate_snapshot' => (float)($equipamento->daily_rate ?? 0),
-                ]);
+                for ($i = 0; $i < $quantidadeTotal; $i++) {
+                    $item = PedidoProduto::create([
+                        'pedido_id'           => $pedido->id,
+                        'equipamento_id'      => $equipamento_id,
+                        'quantidade'          => 1, 
+                        'status'              => PedidoProduto::STATUS_RESERVADO,
+                        'daily_rate_snapshot' => (float)($equipamento->daily_rate ?? 0),
+                    ]);
 
-                if (!$item->reservar()) { // Método no Model PedidoProduto que chama Equipamento::reservar
-                    DB::rollBack();
-                    return redirect()->back()->with('error', "Falha ao reservar {$equipamento->nome}. Verifique o estoque novamente.")->withInput();
+                    if (!$item->reservar()) {
+                        DB::rollBack();
+                        return redirect()->back()->with('error', "Falha ao reservar uma unidade de {$equipamento->nome}.")->withInput();
+                    }
                 }
             }
 
@@ -101,8 +104,7 @@ class PedidoController extends Controller
             return redirect()->route('pedidos.index')->with('success', 'Pedido criado com sucesso!');
         } catch (\Exception $e) {
             DB::rollBack();
-            // Log::error('Erro ao criar pedido: ' . $e->getMessage()); // Descomente se quiser logar o erro
-            return redirect()->back()->with('error', 'Erro interno ao criar pedido. Tente novamente.')->withInput();
+            return redirect()->back()->with('error', 'Erro interno ao criar pedido: ' . $e->getMessage())->withInput();
         }
     }
 
@@ -111,29 +113,41 @@ class PedidoController extends Controller
         $user = Auth::user();
         $query = Pedido::with(['cliente', 'funcionario', 'itens.equipamento']);
 
-        // Se for cliente, aplica filtro para garantir que só veja o seu
         if ($user->role === 'cliente') {
             $query->where('cliente_id', $user->cliente_id);
         }
 
         $pedido = $query->find($id);
 
-        // Verifica se o pedido foi encontrado E se pertence ao cliente (caso seja cliente)
         if (!$pedido) {
-            abort(404, 'Pedido não encontrado ou não pertence a você.'); // Ou redirecionar com erro
+            abort(404, 'Pedido não encontrado ou não pertence a você.');
         }
 
         return view('pedidos.show', compact('pedido'));
     }
 
-
     public function edit($id)
     {
-
-        
         $pedido = Pedido::with('itens')->findOrFail($id);
 
 
+        $quantidadesAgrupadas = [];
+        $produtosSelecionados = [];
+
+        foreach ($pedido->itens as $item) {
+            if ($item->status === PedidoProduto::STATUS_CANCELADO) continue;
+            
+            $eid = $item->equipamento_id;
+            if (!isset($quantidadesAgrupadas[$eid])) {
+                $quantidadesAgrupadas[$eid] = 0;
+                $produtosSelecionados[] = $eid;
+            }
+            $quantidadesAgrupadas[$eid] += $item->quantidade; 
+        }
+
+
+        $pedido->produtos_selecionados_ids = $produtosSelecionados;
+        $pedido->quantidades_agrupadas = $quantidadesAgrupadas;
 
         return view('pedidos.edit', [
             'pedido' => $pedido,
@@ -145,8 +159,6 @@ class PedidoController extends Controller
 
     public function update(Request $request, $id)
     {
-
-        
         $request->validate([
             'local_entrega'  => 'required|string|max:255', 
             'data_entrega'   => 'required|date',
@@ -160,81 +172,111 @@ class PedidoController extends Controller
         try {
             $pedido = Pedido::with('itens.equipamento')->findOrFail($id);
 
-
             $pedido->local_entrega  = $request->local_entrega;
             $pedido->data_entrega   = $request->data_entrega;
             $pedido->save();
 
-            $produtosSelecionados = $request->input('produtos', []);
-            $quantidadesReq       = $request->input('quantidades', []);
-            $quantidades = [];
-            foreach ($quantidadesReq as $eid => $qtd) {
-                if (in_array($eid, $produtosSelecionados)) {
-                    $quantidades[$eid] = (int)$qtd;
-                }
-            }
-
-            $idsSelecionados = $produtosSelecionados; 
-            $idsParaManter = [];
+            $produtosForm = $request->input('produtos', []);
+            $quantidadesForm = $request->input('quantidades', []);
 
 
-            foreach ($pedido->itens as $item) {
-                $eid = $item->equipamento_id;
+            $itensNoBanco = $pedido->itens->where('status', '!=', PedidoProduto::STATUS_CANCELADO)->groupBy('equipamento_id');
 
-                if (in_array($eid, $idsSelecionados) && isset($quantidades[$eid])) {
-                    $novaQuant = $quantidades[$eid];
-                    
-                    if ($item->status === PedidoProduto::STATUS_RESERVADO) {
-                        if ($novaQuant > 0) {
-                            if (!$item->alterarQuantidade($novaQuant)) {
-                                DB::rollBack();
-                                return back()->with('error', "Estoque insuficiente ou erro ao atualizar {$item->equipamento->nome}.")->withInput();
-                            }
-                            $idsParaManter[] = $eid;
-                        } else {
-                            $item->cancelar(); 
-                            $item->delete();
+
+            $equipamentosProcessados = [];
+
+            foreach ($produtosForm as $eid) {
+                $equipamentosProcessados[] = $eid;
+                
+                $qtdDesejada = (int)($quantidadesForm[$eid] ?? 0);
+                if ($qtdDesejada <= 0) continue;
+
+
+                $itensDesteEquipamento = $itensNoBanco->get($eid, collect());
+                
+
+                $qtdAtual = $itensDesteEquipamento->sum('quantidade');
+
+                if ($qtdDesejada > $qtdAtual) {
+
+                    $falta = $qtdDesejada - $qtdAtual;
+                    $equipamento = Equipamento::find($eid);
+
+                    if (!$equipamento) {
+                        throw new \Exception("Equipamento ID $eid não encontrado.");
+                    }
+                    if ($equipamento->quantidade_disponivel < $falta) {
+                        throw new \Exception("Estoque insuficiente para adicionar {$equipamento->nome}. Faltam: {$falta}.");
+                    }
+
+                    for ($i = 0; $i < $falta; $i++) {
+                        $novoItem = PedidoProduto::create([
+                            'pedido_id'           => $pedido->id,
+                            'equipamento_id'      => $eid,
+                            'quantidade'          => 1, 
+                            'status'              => PedidoProduto::STATUS_RESERVADO,
+                            'daily_rate_snapshot' => (float)($equipamento->daily_rate ?? 0),
+                        ]);
+                        if (!$novoItem->reservar()) {
+                            throw new \Exception("Erro ao reservar {$equipamento->nome}.");
                         }
-                    } else {
-                         $idsParaManter[] = $eid;
                     }
 
-                } else {
-                    if ($item->status === PedidoProduto::STATUS_RESERVADO) {
-                        $item->cancelar(); 
-                        $item->delete();
+                } elseif ($qtdDesejada < $qtdAtual) {
+
+                    $sobra = $qtdAtual - $qtdDesejada;
+                    
+
+                    $paraRemover = $itensDesteEquipamento->sortBy(function($item) {
+
+                        return $item->status === PedidoProduto::STATUS_RESERVADO ? 0 : 1;
+                    });
+
+                    $removidosCount = 0;
+                    foreach ($paraRemover as $item) {
+                        if ($removidosCount >= $sobra) break;
+
+
+                        if ($item->quantidade > 1) {
+                            $reducaoNecessaria = $sobra - $removidosCount;
+                            $podeTirar = $item->quantidade - 1; 
+                            
+                            $tirar = min($reducaoNecessaria, $podeTirar);
+                            if ($tirar > 0) {
+                                if ($item->status === PedidoProduto::STATUS_RESERVADO) {
+                                    $item->alterarQuantidade($item->quantidade - $tirar);
+                                    $removidosCount += $tirar;
+                                } else {
+
+                                }
+                            }
+                        } 
+
+                        elseif ($item->quantidade == 1) {
+                            if ($item->status === PedidoProduto::STATUS_RESERVADO) {
+                                $item->cancelar(); 
+                                $item->delete(); 
+                                $removidosCount++;
+                            } else {
+
+                            }
+                        }
                     }
                 }
             }
 
 
-            $idsParaAdicionar = array_diff($idsSelecionados, $idsParaManter);
-            foreach ($idsParaAdicionar as $eid) {
-                $novaQuant = $quantidades[$eid] ?? 0;
-                if ($novaQuant <= 0) continue;
+            foreach ($itensNoBanco as $eid => $colecaoItens) {
+                if (!in_array($eid, $equipamentosProcessados)) {
 
-                $equipamento = Equipamento::find($eid);
-                if (!$equipamento) { 
-                    DB::rollBack();
-                    return back()->with('error', "Equipamento ID {$eid} não encontrado.")->withInput();
-                }
+                    foreach ($colecaoItens as $item) {
+                        if ($item->status === PedidoProduto::STATUS_RESERVADO) {
+                            $item->cancelar();
+                            $item->delete();
+                        } else {
 
-                if ($equipamento->quantidade_disponivel < $novaQuant) {
-                    DB::rollBack();
-                    return back()->with('error', "Estoque insuficiente para adicionar {$equipamento->nome}. Disponível: {$equipamento->quantidade_disponivel}.")->withInput();
-                }
-
-                $novoItem = PedidoProduto::create([
-                    'pedido_id'           => $pedido->id,
-                    'equipamento_id'      => $eid,
-                    'quantidade'          => $novaQuant,
-                    'status'              => PedidoProduto::STATUS_RESERVADO,
-                    'daily_rate_snapshot' => (float)($equipamento->daily_rate ?? 0),
-                ]);
-
-                if (!$novoItem->reservar()) { 
-                    DB::rollBack();
-                    return back()->with('error', "Falha ao reservar o novo item {$equipamento->nome}.")->withInput();
+                        }
+                    }
                 }
             }
 
@@ -243,17 +285,13 @@ class PedidoController extends Controller
         
         } catch (\Exception $e) {
             DB::rollBack();
-            
-
-            return back()->with('error', 'Erro interno ao atualizar pedido: ' . $e->getMessage())->withInput();
+            return back()->with('error', 'Erro ao atualizar pedido: ' . $e->getMessage())->withInput();
         }
     }
-
 
     public function destroy($id)
     {
         $user = Auth::user();
-        // Apenas Admin e Funcionário podem excluir
         if ($user->role === 'cliente') {
              abort(403, 'Acesso não autorizado.');
         }
@@ -262,34 +300,28 @@ class PedidoController extends Controller
         try {
             $pedido = Pedido::with('itens')->findOrFail($id);
 
-            // Libera estoque de cada item (se estiver reservado ou em locação)
             foreach ($pedido->itens as $item) {
                  if ($item->status === PedidoProduto::STATUS_RESERVADO || $item->status === PedidoProduto::STATUS_EM_LOCACAO) {
-                      $item->cancelar(); // Usa o método cancelar para liberar estoque corretamente
+                      $item->cancelar();
                  }
             }
 
-            // A exclusão dos itens é feita em cascata pelo onDelete('cascade') na migration,
-
-            // PedidoProduto::where('pedido_id', $pedido->id)->delete();
-
-            $pedido->delete(); // Exclui o pedido (e itens em cascata)
+            $pedido->delete();
 
             DB::commit();
             return redirect()->route('pedidos.index')->with('success', 'Pedido excluído com sucesso!');
         } catch (\Exception $e) {
             DB::rollBack();
-            // Log::error('Erro ao excluir pedido: ' . $e->getMessage()); // Descomente para logar
             return redirect()->route('pedidos.index')->with('error', 'Erro ao excluir pedido: ' . $e->getMessage());
         }
     }
+
 
     public function comprovante($id)
     {
         $user = Auth::user();
         $query = Pedido::with(['cliente', 'funcionario', 'itens.equipamento']);
 
-        // Se for cliente, aplica filtro
         if ($user->role === 'cliente') {
             $query->where('cliente_id', $user->cliente_id);
         }
@@ -303,11 +335,10 @@ class PedidoController extends Controller
         return view('pedidos.comprovante', compact('pedido'));
     }
 
-    public function grafico(Pedido $pedido) // Route Model Binding já carrega o pedido
+    public function grafico(Pedido $pedido)
     {
         $user = Auth::user();
 
-        // Se for cliente, verifica se o pedido pertence a ele
         if ($user->role === 'cliente' && $pedido->cliente_id !== $user->cliente_id) {
              abort(403, 'Acesso não autorizado.');
         }
@@ -315,12 +346,14 @@ class PedidoController extends Controller
         $pedido->load('itens.equipamento');
         $seriesPorItem = [];
         foreach ($pedido->itens as $item) {
+            if ($item->status === PedidoProduto::STATUS_CANCELADO) continue;
             $seriesPorItem[$item->id] = $item->breakdownDecorrido();
         }
         $agregado = $this->agruparSeries($seriesPorItem);
 
         $events = [];
         foreach ($pedido->itens as $item) {
+            if ($item->status === PedidoProduto::STATUS_CANCELADO) continue;
             if ($item->start_at) {
                 $events[] = [
                     'data'        => $item->start_at->copy()->startOfDay()->format('Y-m-d'),
@@ -343,11 +376,10 @@ class PedidoController extends Controller
         ]);
     }
 
-    public function decorridos(Pedido $pedido) // Route Model Binding
+    public function decorridos(Pedido $pedido)
     {
         $user = Auth::user();
 
-        // Se for cliente, verifica se o pedido pertence a ele
         if ($user->role === 'cliente' && $pedido->cliente_id !== $user->cliente_id) {
              abort(403, 'Acesso não autorizado.');
         }
@@ -355,6 +387,7 @@ class PedidoController extends Controller
         $pedido->load('itens.equipamento');
         $series = [];
         foreach ($pedido->itens as $item) {
+            if ($item->status === PedidoProduto::STATUS_CANCELADO) continue;
             $series[$item->id] = $item->breakdownDecorrido();
         }
         $agregado = $this->agruparSeries($series);
@@ -374,7 +407,7 @@ class PedidoController extends Controller
                 $agrupado[$data] += (float)($linha['parcela'] ?? 0);
             }
         }
-        ksort($agrupado); // Ordena por data
+        ksort($agrupado);
         $acumulado = 0.0;
         $resultado = [];
         foreach ($agrupado as $data => $valor) {
