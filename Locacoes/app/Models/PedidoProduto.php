@@ -109,7 +109,6 @@ class PedidoProduto extends Model
             $diasCobrados = 1;
         } else {
             $diffHoras    = abs($end->floatDiffInHours($start));
-            
             $diasCobrados = (int) ceil($diffHoras / 24);
             $diasCobrados = max(1, $diasCobrados);
         }
@@ -166,9 +165,9 @@ class PedidoProduto extends Model
         $current = $start->copy()->startOfDay();
         $endDay  = $end->copy()->startOfDay();
 
+        // Loop de projeção
         while ($current->lte($endDay)) {
             $nextDay = $current->copy()->addDay();
-            
             $intervalStart = $current->max($start);
             $intervalEnd   = $nextDay->min($end);
 
@@ -182,48 +181,58 @@ class PedidoProduto extends Model
 
             $parcela = ($horas / 24.0) * $rateDia * $qtd;
             $acumulado += $parcela;
+            
             $series[] = [
                 'data'      => $current->format('Y-m-d'),
                 'horas'     => round($horas, 2),
                 'parcela'   => round($parcela, 2),
-                'regra'     => $this->status === self::STATUS_DEVOLVIDO ? 'projecao' : 'projecao', 
+                'regra'     => 'diaria',
                 'acumulado' => round($acumulado, 2),
             ];
             $current->addDay();
         }
 
+        // Ajuste Final (Best Price / Mínimo)
         if ($this->status === self::STATUS_DEVOLVIDO && $this->computed_total !== null) {
             $finalTotal = (float) $this->computed_total;
-
-            $totalHours = 0.0;
+            
+            $somaProjetada = 0.0;
             foreach ($series as $linha) {
-                $totalHours += (float)($linha['horas'] ?? 0);
+                $somaProjetada += $linha['parcela'];
             }
 
-            if ($totalHours > 0.0) {
-                $acumuladoTmp = 0.0;
-                foreach ($series as $idx => $linha) {
-                    $alloc = ($linha['horas'] / $totalHours) * $finalTotal;
-                    $series[$idx]['parcela'] = round($alloc, 2);
-                    $acumuladoTmp += $alloc;
-                    $series[$idx]['acumulado'] = round($acumuladoTmp, 2);
-                    $series[$idx]['regra'] = 'consolidado';
-                }
-                $diff = round($finalTotal - $acumuladoTmp, 2);
-                if (abs($diff) > 0.01 && count($series) > 0) {
-                    $lastIndex = count($series) - 1;
-                    $series[$lastIndex]['parcela'] = round($series[$lastIndex]['parcela'] + $diff, 2);
-                    $series[$lastIndex]['acumulado'] = round($finalTotal, 2);
-                }
-            } else {
-                $lastIndex = count($series) - 1;
-                if ($lastIndex >= 0) {
-                    $series[$lastIndex]['parcela'] = round($finalTotal, 2);
-                    $series[$lastIndex]['acumulado'] = round($finalTotal, 2);
-                    $series[$lastIndex]['regra'] = 'consolidado';
+            $diferenca = $finalTotal - $somaProjetada;
+
+            // Se a diferença for POSITIVA (Soma das horas < Valor da Diária Mínima)
+            // Exibimos como "Complemento Diária" para justificar o valor
+            if ($diferenca > 0.01) {
+                $series[] = [
+                    'data'      => $end->format('Y-m-d'),
+                    'horas'     => 0,
+                    'parcela'   => round($diferenca, 2),
+                    'regra'     => 'Complemento Diária', // Nome amigável para o cliente
+                    'acumulado' => round($finalTotal, 2),
+                ];
+            } 
+            // Se a diferença for NEGATIVA (Desconto de pacote, ex: Semanal)
+            elseif ($diferenca < -0.01) {
+                $series[] = [
+                    'data'      => $end->format('Y-m-d'),
+                    'horas'     => 0,
+                    'parcela'   => round($diferenca, 2),
+                    'regra'     => 'Desconto Pacote',
+                    'acumulado' => round($finalTotal, 2),
+                ];
+            }
+            // Se for Zero (apenas ajuste de centavos)
+            else {
+                if (count($series) > 0) {
+                    $lastIdx = count($series) - 1;
+                    $series[$lastIdx]['acumulado'] = round($finalTotal, 2);
                 }
             }
         }
+
         return $series;
     }
 
