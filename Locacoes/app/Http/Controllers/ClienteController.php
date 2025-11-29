@@ -37,7 +37,13 @@ class ClienteController extends Controller
      */
     public function store(Request $request)
     {
-
+        $dados = $request->all();
+        $dados['cpf'] = preg_replace('/[^0-9]/', '', $dados['cpf']);
+        $dados['telefone'] = preg_replace('/[^0-9]/', '', $dados['telefone']);
+        
+        // Substitui os dados da request pelos dados limpos
+        $request->replace($dados);
+        
         $validated = $request->validate(
             [
                 'nome' => 'required|string|max:100',
