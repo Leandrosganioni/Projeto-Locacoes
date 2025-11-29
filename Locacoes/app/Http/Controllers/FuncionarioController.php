@@ -26,6 +26,11 @@ class FuncionarioController extends Controller
 
     public function store(Request $request)
     {
+        $dados = $request->all();
+        $dados['cpf'] = preg_replace('/[^0-9]/', '', $dados['cpf']);
+        $dados['telefone'] = preg_replace('/[^0-9]/', '', $dados['telefone']);
+        
+        $request->replace($dados);
         // --- Documentação (Validação) ---
         // Adicionamos validação para os campos de funcionário e os novos campos de usuário/acesso.
         // - role: obrigatório e deve ser 'admin' ou 'funcionario'.

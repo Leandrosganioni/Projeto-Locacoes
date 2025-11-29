@@ -18,12 +18,14 @@
             
             <div class="mb-3">
                 <label for="cpf" class="form-label">CPF</label>
-                <input type="text" class="form-control" id="cpf" name="cpf" value="{{ old('cpf', $cliente->cpf) }}" required>
+                {{-- Adicionada classe 'cpf-mask' --}}
+                <input type="text" class="form-control cpf-mask" id="cpf" name="cpf" value="{{ old('cpf', $cliente->cpf) }}" required>
             </div>
             
             <div class="mb-3">
                 <label for="telefone" class="form-label">Telefone</label>
-                <input type="text" class="form-control" id="telefone" name="telefone" value="{{ old('telefone', $cliente->telefone) }}" required>
+                {{-- Adicionada classe 'phone-mask' --}}
+                <input type="text" class="form-control phone-mask" id="telefone" name="telefone" value="{{ old('telefone', $cliente->telefone) }}" required>
             </div>
             
             <div class="mb-3">
@@ -44,4 +46,11 @@
 
 @push('styles')
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+@endpush
+
+{{-- Scripts de Máscara --}}
+@push('scripts')
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+    <script src="{{ asset('js/custom-masks.js') }}"></script>
 @endpush

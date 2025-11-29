@@ -33,14 +33,14 @@
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label for="cpf" class="form-label">CPF</label>
-                    <input type="text" class="form-control @error('cpf') is-invalid @enderror" id="cpf" name="cpf" placeholder="000.000.000-00" value="{{ old('cpf') }}" required>
+                    <input type="text" class="form-control cpf-mask @error('cpf') is-invalid @enderror" id="cpf" name="cpf" placeholder="000.000.000-00" value="{{ old('cpf') }}" required>
                     @error('cpf')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
                 <div class="col-md-6">
                     <label for="telefone" class="form-label">Telefone</label>
-                    <input type="text" class="form-control @error('telefone') is-invalid @enderror" id="telefone" name="telefone" value="{{ old('telefone') }}" required>
+                    <input type="text" class="form-control phone-mask @error('telefone') is-invalid @enderror" id="telefone" name="telefone" value="{{ old('telefone') }}" required>
                     @error('telefone')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -117,6 +117,14 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+    {{-- Importa o jQuery (se já não estiver no layout) e o Mask Plugin --}}
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+    {{-- Nosso script personalizado --}}
+    <script src="{{ asset('js/custom-masks.js') }}"></script>
+@endpush
 
 @push('styles')
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
