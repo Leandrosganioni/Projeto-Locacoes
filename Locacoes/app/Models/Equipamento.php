@@ -69,4 +69,9 @@ class Equipamento extends Model
         return $this->liberar($qtd);
     }
 
+    public function itens()
+    {
+        return $this->hasMany(\App\Models\PedidoProduto::class, 'equipamento_id');
+    }
+
 }

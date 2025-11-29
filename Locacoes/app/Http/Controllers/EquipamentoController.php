@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Equipamento;
+use App\Models\Pedido;
+use App\Models\PedidoProduto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 
@@ -119,9 +121,17 @@ class EquipamentoController extends Controller
         return redirect()->route('equipamentos.index')->with('success', 'Equipamento atualizado com sucesso!');
     }
 
-
     public function destroy(Equipamento $equipamento)
     {
+        // Se o equipamento está associado a algum pedido (itens não cancelados), cancela o destroy
+        $existe = PedidoProduto::where('equipamento_id', $equipamento->id)
+            ->where('status', '!=', PedidoProduto::STATUS_CANCELADO)
+            ->exists();
+
+        if ($existe) {
+            return redirect()->route('equipamentos.index')->with('error', 'Não é possível excluir: equipamento vinculado a um ou mais pedidos.');
+        }
+
         // apaga arquivo físico, se existir
         if ($equipamento->imagem) {
             $path = public_path('images/equipamentos/'. $equipamento->imagem);
