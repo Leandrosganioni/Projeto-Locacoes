@@ -30,6 +30,7 @@
             <table id="pedidos-table" class="table table-striped table-hover align-middle">
                 <thead class="table-dark">
                     <tr>
+                        <th>Status</th> {{-- NOVA COLUNA --}}
                         <th>Cliente</th>
                         {{-- Mostra Funcionário apenas se não for cliente --}}
                         @if(Auth::user()->role !== 'cliente')
@@ -43,10 +44,17 @@
                 <tbody>
                     @forelse($pedidos as $pedido)
                     <tr>
+                        <td>
+                            @if($pedido->status === 'finalizado')
+                                <span class="badge bg-success">Finalizado</span>
+                            @else
+                                <span class="badge bg-secondary">Ativo</span>
+                            @endif
+                        </td>
                         <td>{{ $pedido->cliente->nome }}</td>
                          {{-- Mostra Funcionário apenas se não for cliente --}}
                         @if(Auth::user()->role !== 'cliente')
-                        <td>{{ $pedido->funcionario?->nome ?? '-' }}</td> {{-- Adicionado "?->" para segurança --}}
+                        <td>{{ $pedido->funcionario?->nome ?? '-' }}</td>
                         @endif
                         <td>{{ \Carbon\Carbon::parse($pedido->data_entrega)->format('d/m/Y') }}</td>
                         <td>{{ $pedido->local_entrega }}</td>
@@ -74,6 +82,7 @@
                     @empty
                     <tr>
                         {{-- Ajusta o número de colunas vazias dependendo do papel --}}
+                        <td class="text-center">-</td>
                         <td class="text-center">-</td>
                         <td class="text-center">-</td>
                         <td class="text-center">-</td>

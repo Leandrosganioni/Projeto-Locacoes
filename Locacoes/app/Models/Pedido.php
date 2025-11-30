@@ -10,7 +10,8 @@ class Pedido extends Model
         'cliente_id',
         'funcionario_id',
         'local_entrega',
-        'data_entrega'
+        'data_entrega',
+        'status'
     ];
 
     
