@@ -420,4 +420,18 @@ class PedidoController extends Controller
         }
         return $resultado;
     }
+
+   // --- AQUI ESTA A FUNÇÃO QUE FALTAVA ---
+    public function alternarStatus($id)
+    {
+        $pedido = Pedido::findOrFail($id);
+        
+        // Alterna entre ativo e finalizado
+        $pedido->status = $pedido->status === 'ativo' ? 'finalizado' : 'ativo';
+        $pedido->save();
+
+        $msg = $pedido->status === 'finalizado' ? 'Pedido marcado como Finalizado.' : 'Pedido reativado.';
+        
+        return back()->with('success', $msg);
+    }
 }

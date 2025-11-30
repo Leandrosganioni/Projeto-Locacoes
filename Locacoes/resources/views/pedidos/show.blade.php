@@ -4,12 +4,37 @@
 
 @section('content')
 <div class="container py-5">
+
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-        <h2 class="mb-0">Detalhes do Pedido #{{ $pedido->id }}</h2>
+        <div class="d-flex align-items-center gap-2">
+            <h2 class="mb-0">Detalhes do Pedido #{{ $pedido->id }}</h2>
+            
+            {{-- Badge de Status --}}
+            @if($pedido->status === 'finalizado')
+                <span class="badge bg-success">FINALIZADO</span>
+            @else
+                <span class="badge bg-secondary">ATIVO</span>
+            @endif
+        </div>
+
         <div class="d-flex flex-wrap gap-2">
-
-
+            
             @if(Auth::user()->role !== 'cliente')
+                {{-- Botão de Alternar Status --}}
+                <form action="{{ route('pedidos.alternarStatus', $pedido->id) }}" method="POST" class="d-inline">
+                    @csrf
+                    @method('POST')
+                    @if($pedido->status === 'ativo')
+                        <button type="submit" class="btn btn-success" title="Finalizar Pedido">
+                            <i class="bi bi-check-circle"></i> Finalizar
+                        </button>
+                    @else
+                        <button type="submit" class="btn btn-outline-secondary" title="Reativar Pedido">
+                            <i class="bi bi-arrow-counterclockwise"></i> Reativar
+                        </button>
+                    @endif
+                </form>
+
                 <a href="{{ route('pedidos.edit', $pedido->id) }}" class="btn btn-outline-warning">
                     <i class="bi bi-pencil"></i> Editar Pedido
                 </a>
@@ -93,7 +118,6 @@
                     <td>{{ $item->end_at ? $item->end_at->format('d/m/Y H:i') : '-' }}</td>
                     <td class="text-end">{{ number_format($item->daily_rate_snapshot, 2, ',', '.') }}</td>
                     <td class="text-end">
-                        {{-- CORREÇÃO: Usando a variável $item para acessar o computed_total --}}
                         @if($item->status === App\Models\PedidoProduto::STATUS_DEVOLVIDO)
                             {{ number_format($item->computed_total, 2, ',', '.') }}
                         @else
@@ -102,7 +126,7 @@
                     </td>
                     {{-- Mostra ações apenas para funcionários e admins --}}
                     @if(Auth::user()->role !== 'cliente')
-                    <td class="text-center"> {{-- Célula de Ações CORRETA --}}
+                    <td class="text-center">
                         <div class="d-flex flex-wrap justify-content-center gap-1">
                             {{-- Botões condicionais --}}
                             @if($item->status === App\Models\PedidoProduto::STATUS_RESERVADO)
@@ -125,25 +149,16 @@
                                         <i class="bi bi-arrow-return-left"></i> Devolver
                                     </button>
                                 </form>
-                            @else
-                                {{-- Se não estiver reservado nem em locação, pode não ter ação ou apenas a de quebra --}}
-                                {{-- <span class="text-muted">-</span> --}}
                             @endif
 
-                            {{-- =================================== --}}
-                            {{--  BOTÃO DE DEVOLUÇÃO MOVIDO PARA CÁ --}}
-                            {{-- =================================== --}}
-                            {{-- CORREÇÃO: Usando a variável $item para acessar o id do equipamento --}}
+                            {{-- Botão de Devolução com Quebra --}}
                             <a href="{{ route('ocorrencias.create', ['equipamento' => $item->equipamento->id, 'pedido_id' => $pedido->id, 'cliente_id' => $pedido->cliente_id]) }}"
                                 class="btn btn-sm btn-outline-warning"
                                 title="Registrar Devolução com Quebra/Defeito">
                                 <i class="bi bi-heartbreak"></i>
                             </a>
-                            {{-- =================================== --}}
-
                         </div>
                     </td>
-                    {{-- REMOVIDA A TD EXTRA QUE ESTAVA AQUI --}}
                     @endif
                 </tr>
                 @empty
