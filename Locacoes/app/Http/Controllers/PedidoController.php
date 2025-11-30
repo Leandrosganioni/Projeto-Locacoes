@@ -80,7 +80,7 @@ class PedidoController extends Controller
 
             foreach ($request->produtos as $equipamento_id) {
                 $quantidadeTotal = (int)($request->quantidades[$equipamento_id] ?? 0);
-                
+
                 $equipamento = Equipamento::find($equipamento_id);
 
 
@@ -88,7 +88,7 @@ class PedidoController extends Controller
                     $item = PedidoProduto::create([
                         'pedido_id'           => $pedido->id,
                         'equipamento_id'      => $equipamento_id,
-                        'quantidade'          => 1, 
+                        'quantidade'          => 1,
                         'status'              => PedidoProduto::STATUS_RESERVADO,
                         'daily_rate_snapshot' => (float)($equipamento->daily_rate ?? 0),
                     ]);
@@ -130,19 +130,24 @@ class PedidoController extends Controller
     {
         $pedido = Pedido::with('itens')->findOrFail($id);
 
+        // Bloqueia edição se o pedido estiver finalizado
+        if ($pedido->status === 'finalizado') {
+            return redirect()->route('pedidos.show', $pedido->id)
+                           ->with('error', 'Não é possível editar um pedido finalizado. Reabra o pedido primeiro.');
+        }
 
         $quantidadesAgrupadas = [];
         $produtosSelecionados = [];
 
         foreach ($pedido->itens as $item) {
             if ($item->status === PedidoProduto::STATUS_CANCELADO) continue;
-            
+
             $eid = $item->equipamento_id;
             if (!isset($quantidadesAgrupadas[$eid])) {
                 $quantidadesAgrupadas[$eid] = 0;
                 $produtosSelecionados[] = $eid;
             }
-            $quantidadesAgrupadas[$eid] += $item->quantidade; 
+            $quantidadesAgrupadas[$eid] += $item->quantidade;
         }
 
 
@@ -151,8 +156,8 @@ class PedidoController extends Controller
 
         return view('pedidos.edit', [
             'pedido' => $pedido,
-            'clientes' => Cliente::orderBy('nome')->get(), 
-            'funcionarios' => Funcionario::orderBy('nome')->get(), 
+            'clientes' => Cliente::orderBy('nome')->get(),
+            'funcionarios' => Funcionario::orderBy('nome')->get(),
             'produtos' => Equipamento::orderBy('nome')->get()
         ]);
     }
@@ -160,7 +165,7 @@ class PedidoController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate([
-            'local_entrega'  => 'required|string|max:255', 
+            'local_entrega'  => 'required|string|max:255',
             'data_entrega'   => 'required|date',
             'produtos'       => 'nullable|array',
             'produtos.*'     => 'exists:equipamentos,id',
@@ -171,6 +176,12 @@ class PedidoController extends Controller
         DB::beginTransaction();
         try {
             $pedido = Pedido::with('itens.equipamento')->findOrFail($id);
+
+            // Bloqueia atualização se o pedido estiver finalizado
+            if ($pedido->status === 'finalizado') {
+                DB::rollBack();
+                return back()->with('error', 'Não é possível editar um pedido finalizado. Reabra o pedido primeiro.')->withInput();
+            }
 
             $pedido->local_entrega  = $request->local_entrega;
             $pedido->data_entrega   = $request->data_entrega;
@@ -187,13 +198,13 @@ class PedidoController extends Controller
 
             foreach ($produtosForm as $eid) {
                 $equipamentosProcessados[] = $eid;
-                
+
                 $qtdDesejada = (int)($quantidadesForm[$eid] ?? 0);
                 if ($qtdDesejada <= 0) continue;
 
 
                 $itensDesteEquipamento = $itensNoBanco->get($eid, collect());
-                
+
 
                 $qtdAtual = $itensDesteEquipamento->sum('quantidade');
 
@@ -213,7 +224,7 @@ class PedidoController extends Controller
                         $novoItem = PedidoProduto::create([
                             'pedido_id'           => $pedido->id,
                             'equipamento_id'      => $eid,
-                            'quantidade'          => 1, 
+                            'quantidade'          => 1,
                             'status'              => PedidoProduto::STATUS_RESERVADO,
                             'daily_rate_snapshot' => (float)($equipamento->daily_rate ?? 0),
                         ]);
@@ -225,7 +236,7 @@ class PedidoController extends Controller
                 } elseif ($qtdDesejada < $qtdAtual) {
 
                     $sobra = $qtdAtual - $qtdDesejada;
-                    
+
 
                     $paraRemover = $itensDesteEquipamento->sortBy(function($item) {
 
@@ -239,8 +250,8 @@ class PedidoController extends Controller
 
                         if ($item->quantidade > 1) {
                             $reducaoNecessaria = $sobra - $removidosCount;
-                            $podeTirar = $item->quantidade - 1; 
-                            
+                            $podeTirar = $item->quantidade - 1;
+
                             $tirar = min($reducaoNecessaria, $podeTirar);
                             if ($tirar > 0) {
                                 if ($item->status === PedidoProduto::STATUS_RESERVADO) {
@@ -250,12 +261,12 @@ class PedidoController extends Controller
 
                                 }
                             }
-                        } 
+                        }
 
                         elseif ($item->quantidade == 1) {
                             if ($item->status === PedidoProduto::STATUS_RESERVADO) {
-                                $item->cancelar(); 
-                                $item->delete(); 
+                                $item->cancelar();
+                                $item->delete();
                                 $removidosCount++;
                             } else {
 
@@ -282,7 +293,7 @@ class PedidoController extends Controller
 
             DB::commit();
             return redirect()->route('pedidos.show', $pedido->id)->with('success', 'Pedido atualizado com sucesso!');
-        
+
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Erro ao atualizar pedido: ' . $e->getMessage())->withInput();
@@ -425,13 +436,13 @@ class PedidoController extends Controller
     public function alternarStatus($id)
     {
         $pedido = Pedido::findOrFail($id);
-        
+
         // Alterna entre ativo e finalizado
         $pedido->status = $pedido->status === 'ativo' ? 'finalizado' : 'ativo';
         $pedido->save();
 
         $msg = $pedido->status === 'finalizado' ? 'Pedido marcado como Finalizado.' : 'Pedido reativado.';
-        
+
         return back()->with('success', $msg);
     }
 }

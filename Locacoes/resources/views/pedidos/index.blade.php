@@ -66,9 +66,15 @@
 
                             {{-- Botões Editar e Excluir (apenas para funcionários e admins) --}}
                             @if(Auth::user()->role !== 'cliente')
-                                <a href="{{ route('pedidos.edit', $pedido->id) }}" class="btn btn-sm btn-outline-warning me-1" title="Editar Pedido">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
+                                @if($pedido->status === 'ativo')
+                                    <a href="{{ route('pedidos.edit', $pedido->id) }}" class="btn btn-sm btn-outline-warning me-1" title="Editar Pedido">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                @else
+                                    <button class="btn btn-sm btn-outline-warning me-1" disabled title="Pedido finalizado - Reabra para editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                @endif
                                 <form action="{{ route('pedidos.destroy', $pedido->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('DELETE')
